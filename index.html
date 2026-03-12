@@ -1,724 +1,1477 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Phoenix Flight Display v3</title>
-  <style>
-    :root{
-      --bg:#030906;
-      --bg2:#07110c;
-      --panel:rgba(8,22,15,.92);
-      --panel2:rgba(10,26,18,.97);
-      --line:rgba(126,255,180,.18);
-      --line2:rgba(126,255,180,.34);
-      --text:#ecfff2;
-      --muted:#92b7a0;
-      --green:#84ffbe;
-      --amber:#ffd45c;
-      --cyan:#78dfff;
-      --red:#ff9cab;
-      --glow:0 0 22px rgba(132,255,190,.12);
-    }
-    *{box-sizing:border-box}
-    html,body{min-height:100%}
-    body{
-      margin:0;
-      color:var(--text);
-      font-family:Inter,Segoe UI,Arial,sans-serif;
-      background:
-        radial-gradient(circle at 15% 0%, rgba(90,255,170,.10), transparent 28%),
-        radial-gradient(circle at 85% 0%, rgba(120,220,255,.08), transparent 24%),
-        linear-gradient(180deg,#010503 0%,#07100b 45%,#050a07 100%);
-      overflow-x:hidden;
-    }
-    body::before{
-      content:"";
-      position:fixed; inset:0;
-      pointer-events:none;
-      background:
-        repeating-linear-gradient(to bottom, rgba(132,255,190,.028) 0 1px, transparent 1px 4px);
-      opacity:.35;
-      mix-blend-mode:screen;
-    }
-    .wrap{max-width:1600px;margin:0 auto;padding:18px}
-    .hero{
-      display:flex;justify-content:space-between;align-items:flex-end;gap:18px;
-      padding:18px 20px;margin-bottom:18px;border-radius:24px;
-      border:1px solid var(--line);background:linear-gradient(180deg,rgba(10,23,16,.92),rgba(5,12,9,.96));
-      box-shadow:0 18px 40px rgba(0,0,0,.34), inset 0 0 0 1px rgba(132,255,190,.03);
-    }
-    .eyebrow{font-size:12px;letter-spacing:.26em;text-transform:uppercase;color:var(--green);margin-bottom:8px}
-    h1{margin:0;font-size:clamp(28px,4vw,46px);line-height:1.02;letter-spacing:.03em}
-    .sub{margin-top:10px;color:var(--muted);max-width:760px;font-size:15px}
-    .tagbar{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
-    .tag{padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(132,255,190,.06);color:var(--green);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
-    .main{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
-    .panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;box-shadow:0 18px 40px rgba(0,0,0,.28);backdrop-filter:blur(8px)}
-    .controls{padding:18px;position:sticky;top:18px}
-    .sectionTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
-    .sectionTitle h2{margin:0;font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:var(--green)}
-    .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 16px rgba(132,255,190,.85)}
-    .field{margin-bottom:14px}
-    label{display:flex;justify-content:space-between;gap:10px;margin-bottom:7px;font-size:14px;color:#defff0}
-    .unit{font-size:12px;color:var(--muted)}
-    input, select{
-      width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);
-      background:var(--panel2);color:var(--text);font-size:15px;outline:none;
-    }
-    input:focus, select:focus{border-color:var(--line2);box-shadow:0 0 0 4px rgba(132,255,190,.07)}
-    .hint{margin-top:5px;color:var(--muted);font-size:12px}
-    .dual{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .trip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 8px}
-    button{
-      border-radius:14px;padding:12px 12px;font-weight:700;cursor:pointer;font-size:14px;transition:.18s ease;
-    }
-    .preset{background:rgba(132,255,190,.05);color:var(--text);border:1px solid var(--line)}
-    .preset:hover,.ghost:hover{background:rgba(132,255,190,.08);border-color:var(--line2)}
-    .cta{width:100%;border:0;background:linear-gradient(90deg,var(--green),#d5ffe5);color:#062113;box-shadow:0 12px 30px rgba(132,255,190,.18)}
-    .ghost{width:100%;margin-top:8px;background:transparent;color:var(--text);border:1px solid var(--line)}
-    .smallgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-    .mini{
-      border:1px solid var(--line);border-radius:16px;padding:10px;background:rgba(132,255,190,.03)
-    }
-    .mini .k{font-size:11px;letter-spacing:.10em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-    .mini .v{font-weight:800;font-size:20px}
-    .content{display:grid;gap:18px}
-    .cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
-    .card{padding:14px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(12,28,19,.82),rgba(9,20,14,.96));box-shadow:var(--glow)}
-    .card .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-    .card .v{font-size:28px;font-weight:800;line-height:1.05}
-    .card .s{margin-top:6px;font-size:12px;color:var(--muted)}
-    .topgrid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
-    .radarBox,.tableBox,.chartBox{padding:14px}
-    .boxTitle{font-size:14px;color:#dfffee;letter-spacing:.14em;text-transform:uppercase;margin:2px 4px 12px}
-    .radarWrap{
-      position:relative;aspect-ratio:1 / 1;max-height:650px;min-height:320px;margin:auto;
-      border-radius:24px;border:1px solid var(--line);background:
-        radial-gradient(circle at center, rgba(132,255,190,.08), rgba(132,255,190,.02) 42%, rgba(0,0,0,.05) 64%, rgba(0,0,0,.35) 100%);
-      overflow:hidden;
-      box-shadow: inset 0 0 80px rgba(132,255,190,.05);
-    }
-    canvas{display:block;width:100%;height:100%}
-    .radarHud{
-      position:absolute;inset:0;pointer-events:none;color:var(--green);font-size:12px;
-    }
-    .hudCorner{position:absolute;padding:12px 14px;color:rgba(132,255,190,.85);text-shadow:0 0 12px rgba(132,255,190,.2)}
-    .tl{top:0;left:0}.tr{top:0;right:0;text-align:right}.bl{bottom:0;left:0}.br{bottom:0;right:0;text-align:right}
-    .chartGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    .chartCanvas{height:260px}
-    .statusRow{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    .summary{padding:14px}
-    .summaryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .summaryItem{padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(132,255,190,.03)}
-    .summaryItem .k{font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
-    .summaryItem .v{font-size:21px;font-weight:800}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:right}
-    th:first-child, td:first-child{text-align:left}
-    th{color:var(--muted);font-weight:600}
-    .foot{padding:12px 2px 0;color:var(--muted);font-size:12px}
-    @media (max-width:1280px){
-      .main{grid-template-columns:1fr}
-      .controls{position:static}
-      .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
-      .topgrid{grid-template-columns:1fr}
-      .summaryGrid{grid-template-columns:repeat(2,1fr)}
-    }
-    @media (max-width:820px){
-      .chartGrid,.statusRow,.dual,.smallgrid,.summaryGrid{grid-template-columns:1fr}
-      .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .trip{grid-template-columns:1fr}
-      .hero{flex-direction:column;align-items:flex-start}
-      .tagbar{justify-content:flex-start}
-    }
-    @media (max-width:560px){
-      .cards{grid-template-columns:1fr}
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIM-54 PHOENIX // LAUNCH CALCULATOR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #050810;
+  --bg2:   #08111a;
+  --bg3:   #0b1822;
+  --panel: #0c1520;
+  --border:#132035;
+  --cyan:  #00e5ff;
+  --cyan2: rgba(0,229,255,0.12);
+  --green: #39ff6e;
+  --green2:rgba(57,255,110,0.12);
+  --amber: #ffb300;
+  --amber2:rgba(255,179,0,0.12);
+  --red:   #ff4444;
+  --red2:  rgba(255,68,68,0.12);
+  --purple:#b388ff;
+  --t1:    #c8dff0;
+  --t2:    #4e7a9a;
+  --t3:    #243a50;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Rajdhani',sans-serif;
+  background:var(--bg);color:var(--t1);
+  min-height:100vh;
+  background-image:
+    linear-gradient(rgba(0,180,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,180,255,0.03) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(0,80,140,0.15),transparent);
+}
+
+/* ── HEADER ── */
+.hdr{
+  position:sticky;top:0;z-index:100;
+  background:linear-gradient(180deg,#07111e 0%,rgba(7,17,30,0.97) 100%);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(8px);
+}
+.hdr::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.45),transparent);
+}
+.hdr-l{display:flex;align-items:center;gap:14px}
+.hdr-ico{
+  width:36px;height:36px;border:1px solid rgba(0,229,255,0.5);border-radius:3px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:var(--cyan);box-shadow:0 0 12px rgba(0,229,255,0.12);
+}
+.hdr-title{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--t2);line-height:1.9}
+.hdr-title strong{display:block;font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;letter-spacing:.1em;color:var(--t1)}
+.hdr-r{display:flex;gap:8px;align-items:center}
+.chip{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.1em;padding:3px 9px;border:1px solid;border-radius:2px;}
+.chip-c{color:var(--cyan);border-color:rgba(0,229,255,0.25);background:var(--cyan2)}
+.chip-g{color:var(--green);border-color:rgba(57,255,110,0.25);background:var(--green2)}
+.chip-a{color:var(--amber);border-color:rgba(255,179,0,0.25);background:var(--amber2)}
+.unit-tog{display:flex;border:1px solid var(--border);border-radius:3px;overflow:hidden}
+.utb{padding:5px 13px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;background:transparent;border:none;color:var(--t2);cursor:pointer;transition:all .2s;}
+.utb.on{background:var(--cyan2);color:var(--cyan);text-shadow:0 0 6px var(--cyan)}
+.utb:hover:not(.on){color:var(--t1)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.blink{animation:blink 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.pulse{animation:pulse 2s ease-in-out infinite}
+
+/* ── MAIN LAYOUT ── */
+.wrap{
+  display:grid;
+  grid-template-columns:340px 1fr;
+  gap:16px;
+  padding:16px 24px 24px;
+  max-width:1600px;margin:0 auto;
+  position:relative;z-index:1;
+}
+
+/* ── PANEL ── */
+.pnl{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:4px;position:relative;overflow:hidden;
+}
+.pnl::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.3),transparent);
+}
+.pnl::after{
+  content:'';position:absolute;width:8px;height:8px;top:0;right:0;
+  border-top:1px solid rgba(0,229,255,0.4);border-right:1px solid rgba(0,229,255,0.4);
+}
+.ph{
+  padding:9px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.pt{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.2em;color:var(--cyan)}
+.ps{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t3)}
+
+/* ═══════════════════════════════════════
+   HERO TRAJECTORY PANEL  (top of results)
+   ═══════════════════════════════════════ */
+.traj-hero{
+  background:var(--panel);
+  border:1px solid rgba(0,229,255,0.3);
+  border-radius:4px;position:relative;overflow:hidden;
+  /* glow ring */
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.08),
+    0 0 40px rgba(0,229,255,0.06),
+    inset 0 0 60px rgba(0,20,50,0.6);
+}
+.traj-hero::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent 0%,var(--cyan) 30%,var(--green) 60%,var(--amber) 80%,transparent 100%);
+  opacity:.7;
+}
+.traj-hero::after{
+  content:'';position:absolute;width:10px;height:10px;top:0;right:0;
+  border-top:2px solid var(--cyan);border-right:2px solid var(--cyan);
+}
+.traj-hero-hdr{
+  padding:10px 16px 8px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid rgba(0,229,255,0.12);
+}
+.traj-hero-title{
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.25em;
+  color:var(--cyan);display:flex;align-items:center;gap:8px;
+}
+.traj-hero-title::before{
+  content:'';display:inline-block;width:6px;height:6px;
+  background:var(--cyan);border-radius:50%;
+  box-shadow:0 0 8px var(--cyan);
+  animation:pulse 2s infinite;
+}
+.traj-meta{display:flex;gap:16px;align-items:center}
+.traj-meta-item{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t2);display:flex;align-items:center;gap:5px}
+.traj-meta-val{color:var(--t1);font-size:10px}
+/* canvas container */
+.traj-canvas-wrap{
+  position:relative;
+  height:260px;
+  padding:0;
+  background:linear-gradient(180deg, rgba(0,8,20,0.9) 0%, rgba(0,4,12,0.95) 100%);
+}
+#traj-canvas{display:block;width:100%;height:100%}
+/* legend strip below canvas */
+.traj-legend{
+  display:flex;gap:20px;align-items:center;
+  padding:7px 16px;border-top:1px solid rgba(0,229,255,0.08);
+  background:rgba(0,0,0,0.3);flex-wrap:wrap;
+}
+.tleg{display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.08em;color:var(--t2)}
+.tleg-dot{width:20px;height:2px;border-radius:1px}
+.tleg-dot.dash{background:repeating-linear-gradient(90deg,currentColor 0,currentColor 4px,transparent 4px,transparent 8px)}
+
+/* ── INPUTS ── */
+.input-section{padding:12px 14px 14px}
+.grp-title{
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.2em;
+  color:var(--t2);margin-bottom:8px;padding-bottom:4px;
+  border-bottom:1px solid var(--t3);display:flex;align-items:center;gap:6px;
+}
+.grp-title::before{content:'▸';color:var(--cyan);font-size:8px}
+.inp-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:7px;}
+.inp-label{font-size:12px;color:var(--t2);letter-spacing:.03em}
+.inp-wrap{display:flex;align-items:center;gap:0;position:relative}
+.inp-field{
+  background:rgba(0,0,0,0.4);border:1px solid var(--t3);
+  border-radius:2px 0 0 2px;color:var(--t1);
+  font-family:'Share Tech Mono',monospace;font-size:13px;
+  padding:5px 8px;width:90px;text-align:right;
+  transition:border-color .2s,box-shadow .2s;outline:none;
+}
+.inp-field:focus{border-color:rgba(0,229,255,0.5);box-shadow:0 0 8px rgba(0,229,255,0.08)}
+.inp-unit{
+  background:rgba(0,0,0,0.3);border:1px solid var(--t3);border-left:none;
+  border-radius:0 2px 2px 0;padding:5px 7px;
+  font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t2);
+  letter-spacing:.05em;min-width:36px;text-align:center;white-space:nowrap;
+}
+.inp-slider{
+  -webkit-appearance:none;width:100%;height:3px;
+  background:linear-gradient(90deg,var(--cyan) 0%,var(--cyan) var(--pct,50%),var(--t3) var(--pct,50%));
+  border-radius:2px;outline:none;cursor:pointer;margin-top:5px;
+}
+.inp-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:12px;height:12px;
+  background:var(--cyan);border-radius:50%;
+  box-shadow:0 0 6px rgba(0,229,255,0.6);cursor:pointer;
+}
+.inp-slider::-moz-range-thumb{
+  width:12px;height:12px;background:var(--cyan);border:none;
+  border-radius:50%;box-shadow:0 0 6px rgba(0,229,255,0.6);cursor:pointer;
+}
+/* Mach sub-display beneath speed inputs */
+.mach-sub{
+  font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--t3);
+  text-align:right;margin-top:2px;letter-spacing:.05em;
+}
+
+.radio-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:4px}
+.rbtn{
+  padding:6px 4px;border:1px solid var(--t3);border-radius:2px;
+  background:transparent;cursor:pointer;font-family:'Share Tech Mono',monospace;
+  font-size:9px;color:var(--t2);letter-spacing:.05em;transition:all .2s;text-align:center;line-height:1.5;
+}
+.rbtn strong{display:block;color:var(--t1);font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600}
+.rbtn:hover{border-color:rgba(0,229,255,0.3);color:var(--t1)}
+.rbtn.on{border-color:var(--cyan);background:var(--cyan2);color:var(--cyan)}
+.rbtn.on strong{color:var(--cyan)}
+
+.calc-btn{
+  width:100%;margin-top:16px;padding:12px;
+  background:linear-gradient(135deg,rgba(0,229,255,0.12),rgba(0,229,255,0.06));
+  border:1px solid rgba(0,229,255,0.5);border-radius:3px;
+  font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.2em;
+  color:var(--cyan);cursor:pointer;transition:all .25s;
+  text-shadow:0 0 8px rgba(0,229,255,0.4);
+  box-shadow:0 0 20px rgba(0,229,255,0.06);
+  position:relative;overflow:hidden;
+}
+.calc-btn::before{
+  content:'';position:absolute;top:-50%;left:-75%;
+  width:50%;height:200%;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.15),transparent);
+  transform:skewX(-20deg);transition:left .6s;
+}
+.calc-btn:hover::before{left:150%}
+.calc-btn:hover{background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(0,229,255,0.1));box-shadow:0 0 30px rgba(0,229,255,0.12);}
+.calc-btn:active{transform:scale(.99)}
+.calc-btn.calculating{animation:blink .4s linear infinite;pointer-events:none;}
+
+/* ── RIGHT COLUMN ── */
+.right-col{display:flex;flex-direction:column;gap:16px}
+
+/* ── READOUTS ── */
+.readout-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px;}
+.rcard{
+  background:rgba(0,0,0,0.3);border:1px solid var(--t3);border-radius:3px;
+  padding:10px 10px 8px;text-align:center;
+  transition:border-color .3s,box-shadow .3s;
+}
+.rcard.lit  {border-color:rgba(0,229,255,0.4);box-shadow:0 0 16px rgba(0,229,255,0.06)}
+.rcard.lit-g{border-color:rgba(57,255,110,0.4);box-shadow:0 0 16px rgba(57,255,110,0.06)}
+.rcard.lit-a{border-color:rgba(255,179,0,0.4);box-shadow:0 0 16px rgba(255,179,0,0.06)}
+.rcard.lit-r{border-color:rgba(255,68,68,0.4);box-shadow:0 0 16px rgba(255,68,68,0.06)}
+.rlabel{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--t2);margin-bottom:5px}
+.rval{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;line-height:1;transition:color .3s;}
+.rval.c{color:var(--cyan);text-shadow:0 0 10px rgba(0,229,255,0.4)}
+.rval.g{color:var(--green);text-shadow:0 0 10px rgba(57,255,110,0.4)}
+.rval.a{color:var(--amber);text-shadow:0 0 10px rgba(255,179,0,0.4)}
+.rval.r{color:var(--red);text-shadow:0 0 10px rgba(255,68,68,0.4)}
+.rval.p{color:var(--purple)}
+.rsub{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--t3);margin-top:3px}
+
+/* ── STATUS BAR ── */
+.status-row{
+  display:flex;padding:9px 14px;
+  border-bottom:1px solid var(--border);
+  align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+}
+.status-item{display:flex;align-items:center;gap:6px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t2);letter-spacing:.08em}
+.sdot{width:6px;height:6px;border-radius:50%}
+.sdot-c{background:var(--cyan);box-shadow:0 0 5px var(--cyan)}
+.sdot-g{background:var(--green);box-shadow:0 0 5px var(--green)}
+.sdot-a{background:var(--amber);box-shadow:0 0 5px var(--amber)}
+
+/* ── CHARTS ── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart-wrap{position:relative;height:220px;padding:10px;background:var(--bg3);border-radius:2px}
+.chart-wrap canvas{width:100%!important;height:100%!important}
+.clegend{display:flex;gap:8px;flex-wrap:wrap;padding:6px 14px 10px;border-top:1px solid var(--t3)}
+.clbtn{
+  display:flex;align-items:center;gap:5px;
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.06em;
+  padding:2px 7px;border:1px solid var(--t3);border-radius:2px;
+  background:transparent;cursor:pointer;color:var(--t2);transition:all .2s;
+}
+.clbtn.on{color:var(--t1);border-color:rgba(255,255,255,0.2)}
+.cldot{width:8px;height:2px;border-radius:1px}
+
+/* ── WARN / ERR ── */
+.warn-box{
+  margin:10px 14px;padding:8px 12px;border:1px solid rgba(255,179,0,0.4);border-radius:2px;
+  background:rgba(255,179,0,0.04);font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--amber);letter-spacing:.06em;line-height:1.6;display:none;
+}
+.warn-box.show{display:block}
+.err-box{
+  margin:10px 14px;padding:8px 12px;border:1px solid rgba(255,68,68,0.5);border-radius:2px;
+  background:rgba(255,68,68,0.06);font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--red);letter-spacing:.06em;line-height:1.6;display:none;
+}
+.err-box.show{display:block}
+
+/* ── DLZ ── */
+.dlz-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px 14px}
+.dlz-card{background:rgba(0,0,0,0.3);border:1px solid var(--t3);border-radius:3px;padding:8px 10px;text-align:center;}
+.dlz-label{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--t2);letter-spacing:.1em;margin-bottom:5px}
+.dlz-val{font-family:'Rajdhani',sans-serif;font-size:20px;font-weight:700}
+.dlz-sub{font-family:'Share Tech Mono',monospace;font-size:7px;color:var(--t3);margin-top:2px}
+
+/* ── TIMELINE ── */
+.timeline{padding:10px 14px 14px}
+.tl-item{display:grid;grid-template-columns:80px 1fr 60px;gap:8px;align-items:center;margin-bottom:8px;}
+.tl-name{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--t2);letter-spacing:.06em}
+.tl-bar-wrap{background:rgba(0,0,0,0.3);border-radius:2px;height:6px;overflow:hidden}
+.tl-bar{height:100%;border-radius:2px;transition:width 1s ease}
+.tl-val{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--t1);text-align:right}
+
+/* ── PARAM TABLE ── */
+.ptable{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:10px}
+.ptable th{color:var(--cyan);font-size:8px;letter-spacing:.15em;font-weight:400;border-bottom:1px solid var(--border);padding:5px 10px;text-align:right;}
+.ptable th:first-child{text-align:left}
+.ptable td{padding:6px 10px;border-bottom:1px solid rgba(19,32,53,0.6);color:var(--t1);text-align:right;transition:background .15s;}
+.ptable td:first-child{color:var(--t2);text-align:left}
+.ptable tr:hover td{background:rgba(0,229,255,0.02)}
+.ptable tr:last-child td{border-bottom:none}
+.hi{color:var(--cyan)}.gi{color:var(--green)}.ai{color:var(--amber)}.ri{color:var(--red)}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--t3);border-radius:2px}
+
+@media(max-width:1000px){
+  .wrap{grid-template-columns:1fr}
+  .chart-grid{grid-template-columns:1fr}
+  .readout-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
 </head>
 <body>
+
+<header class="hdr">
+  <div class="hdr-l">
+    <div class="hdr-ico">⬡</div>
+    <div class="hdr-title">
+      FIRE CONTROL SYSTEM
+      <strong>AIM-54 PHOENIX — LAUNCH CALCULATOR</strong>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <span class="chip chip-c">MOTOR DATA: VERIFIED</span>
+    <span class="chip chip-g blink" id="sys-status">READY</span>
+    <div class="unit-tog">
+      <button class="utb on" id="btn-si"  onclick="setUnit('si')">SI</button>
+      <button class="utb"    id="btn-imp" onclick="setUnit('imp')">IMP</button>
+    </div>
+    <span class="chip chip-a" id="clk">--:--:--</span>
+  </div>
+</header>
+
 <div class="wrap">
-  <div class="hero panel">
-    <div>
-      <div class="eyebrow">Phoenix Flight Display</div>
-      <h1>Phoenix HUD / Radar Webapp</h1>
-      <div class="sub">Simulação visual de perfil de voo com instrumentação inspirada no AIM-54C do DCS World</div>
+
+  <!-- ══════ LEFT: INPUTS ══════ -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <!-- Variant -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">MISSILE VARIANT</span><span class="ps">SELECT CONFIGURATION</span></div>
+      <div style="padding:10px 14px 12px">
+        <div class="radio-grid" id="variant-grid">
+          <button class="rbtn on" onclick="selVariant('A_Mk47',this)"><strong>AIM-54A</strong>Mk47 · 13800N</button>
+          <button class="rbtn"    onclick="selVariant('A_Mk60',this)"><strong>AIM-54A</strong>Mk60 · 13800N</button>
+          <button class="rbtn"    onclick="selVariant('C_Mk47',this)"><strong>AIM-54C</strong>Mk47 · 14500N</button>
+          <button class="rbtn"    onclick="selVariant('C_Mk60',this)"><strong>AIM-54C</strong>Mk60 · 13800N</button>
+        </div>
+      </div>
     </div>
-    <div class="tagbar">
-      <div class="tag">AIM-54C</div>
-      <div class="tag">MK47 Mod 1</div>
-      <div class="tag">Metric + Imperial</div>
-      <div class="tag">Responsive UI</div>
-    </div>
-  </div>
 
-  <div class="main">
-    <aside class="panel controls">
-      <div class="sectionTitle"><h2>Flight Setup</h2><div class="dot"></div></div>
+    <!-- Launch Platform -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">LAUNCH PLATFORM</span><span class="ps">SHOOTER STATE</span></div>
+      <div class="input-section">
+        <div class="grp-title">ALTITUDE &amp; SPEED</div>
 
-      <div class="field">
-        <label for="presetSelect"><span>Preset</span><span class="unit">quick load</span></label>
-        <select id="presetSelect">
-          <option value="custom">Custom</option>
-          <option value="highFast">High / Fast</option>
-          <option value="medium">Medium / Cruise</option>
-          <option value="lowFast">Low / Fast</option>
-        </select>
-      </div>
-
-      <div class="dual">
-        <div class="field">
-          <label for="alt"><span>Altitude inicial</span><span class="unit">m / ft</span></label>
-          <input id="alt" type="number" value="12000" min="100" max="25000" step="100" />
-          <div class="hint" id="altHint"></div>
-        </div>
-        <div class="field">
-          <label for="speed"><span>Velocidade inicial</span><span class="unit">km/h / kt</span></label>
-          <input id="speed" type="number" value="1450" min="200" max="3000" step="10" />
-          <div class="hint" id="speedHint"></div>
-        </div>
-      </div>
-
-      <div class="dual">
-        <div class="field">
-          <label for="pitch"><span>Pitch inicial</span><span class="unit">graus</span></label>
-          <input id="pitch" type="number" value="18" min="-10" max="50" step="1" />
-        </div>
-        <div class="field">
-          <label for="duration"><span>Duração</span><span class="unit">s</span></label>
-          <input id="duration" type="number" value="120" min="20" max="220" step="5" />
-        </div>
-      </div>
-
-      <div class="dual">
-        <div class="field">
-          <label for="loft"><span>Loft visual</span><span class="unit">0.0 - 1.0</span></label>
-          <input id="loft" type="number" value="0.17" min="0" max="0.6" step="0.01" />
-        </div>
-        <div class="field">
-          <label for="drag"><span>Drag scale</span><span class="unit">multiplier</span></label>
-          <input id="drag" type="number" value="1.00" min="0.6" max="1.6" step="0.01" />
-        </div>
-      </div>
-
-      <div class="trip">
-        <button class="preset" data-preset="highFast">High / Fast</button>
-        <button class="preset" data-preset="medium">Medium</button>
-        <button class="preset" data-preset="lowFast">Low / Fast</button>
-      </div>
-
-      <button class="cta" id="runBtn">Run Simulation</button>
-      <button class="ghost" id="resetBtn">Reset Defaults</button>
-
-      <div class="smallgrid">
-        <div class="mini"><div class="k">Motor</div><div class="v">MK47 Mod 1</div></div>
-        <div class="mini"><div class="k">Missile</div><div class="v">AIM-54C</div></div>
-        <div class="mini"><div class="k">Thrust</div><div class="v" id="motorThrustMini">14.5 kN</div></div>
-        <div class="mini"><div class="k">Burn</div><div class="v" id="burnMini">27.0 s</div></div>
-      </div>
-
-      <div class="foot">Painel visual focado em telemetria, perfil de voo e curva de motor.</div>
-    </aside>
-
-    <section class="content">
-      <div class="cards">
-        <div class="card"><div class="k">Max Mach</div><div class="v" id="maxMachCard">—</div><div class="s" id="maxMachSub">peak</div></div>
-        <div class="card"><div class="k">Altitude máx.</div><div class="v" id="maxAltCard">—</div><div class="s" id="maxAltSub">m / ft</div></div>
-        <div class="card"><div class="k">Tempo ativo</div><div class="v" id="burnCard">—</div><div class="s">fase de queima</div></div>
-        <div class="card"><div class="k">Distância final</div><div class="v" id="rangeCard">—</div><div class="s">trajetória integrada</div></div>
-        <div class="card"><div class="k">Velocidade final</div><div class="v" id="endSpeedCard">—</div><div class="s">km/h / kt</div></div>
-        <div class="card"><div class="k">Massa final</div><div class="v" id="massCard">—</div><div class="s">kg / lb</div></div>
-      </div>
-
-      <div class="topgrid">
-        <div class="panel radarBox">
-          <div class="boxTitle">Radar / Flight Plot</div>
-          <div class="radarWrap">
-            <canvas id="radarCanvas" width="800" height="800"></canvas>
-            <div class="radarHud">
-              <div class="hudCorner tl" id="hudTL">MODE: TRACK</div>
-              <div class="hudCorner tr" id="hudTR">MACH 0.00<br>ALT 0 m</div>
-              <div class="hudCorner bl" id="hudBL">RNG 0 km<br>T 0.0 s</div>
-              <div class="hudCorner br" id="hudBR">THR 0 kN<br>MASS 0 kg</div>
+        <!-- Shooter Altitude -->
+        <div class="inp-row">
+          <span class="inp-label">Shooter Altitude</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-alt" type="number" value="8000" min="0" max="20000" step="100">
+              <span class="inp-unit" id="u-alt">m</span>
             </div>
+            <input class="inp-slider" id="s-alt" type="range" min="0" max="20000" step="100" value="8000" oninput="syncSliderToField('alt')">
           </div>
         </div>
 
-        <div class="panel summary">
-          <div class="boxTitle">DCS Motor Snapshot</div>
-          <div class="summaryGrid">
-            <div class="summaryItem"><div class="k">Initial mass</div><div class="v" id="sumM0">454 kg</div></div>
-            <div class="summaryItem"><div class="k">Propellant</div><div class="v" id="sumProp">163 kg</div></div>
-            <div class="summaryItem"><div class="k">Thrust</div><div class="v" id="sumThrust">14.5 kN</div></div>
-            <div class="summaryItem"><div class="k">Burn time</div><div class="v" id="sumBurn">27 s</div></div>
-            <div class="summaryItem"><div class="k">Max altitude ref.</div><div class="v" id="sumHmax">25,000 m</div></div>
-            <div class="summaryItem"><div class="k">Mach ref.</div><div class="v" id="sumMach">4.0</div></div>
-            <div class="summaryItem"><div class="k">Range ref.</div><div class="v" id="sumRange">180 km</div></div>
-            <div class="summaryItem"><div class="k">Diameter</div><div class="v" id="sumDiam">380 mm</div></div>
+        <!-- Shooter Speed — always Mach -->
+        <div class="inp-row">
+          <span class="inp-label">Shooter Speed</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-spd" type="number" value="1.60" min="0.10" max="3.00" step="0.05">
+              <span class="inp-unit">M</span>
+            </div>
+            <input class="inp-slider" id="s-spd" type="range" min="0.10" max="3.00" step="0.05" value="1.60" oninput="syncSliderToField('spd')">
+            <div class="mach-sub" id="sub-spd">— m/s</div>
           </div>
-          <div class="foot">Parâmetros de referência do painel ajustados para AIM-54C com motor MK47 Mod 1.</div>
         </div>
-      </div>
 
-      <div class="chartGrid">
-        <div class="panel chartBox"><div class="boxTitle">Velocity / Mach</div><canvas class="chartCanvas" id="speedChart" width="700" height="320"></canvas></div>
-        <div class="panel chartBox"><div class="boxTitle">Altitude / Distance</div><canvas class="chartCanvas" id="altChart" width="700" height="320"></canvas></div>
-        <div class="panel chartBox"><div class="boxTitle">Thrust Curve</div><canvas class="chartCanvas" id="thrustChart" width="700" height="320"></canvas></div>
-        <div class="panel chartBox"><div class="boxTitle">Mass Burnoff</div><canvas class="chartCanvas" id="massChart" width="700" height="320"></canvas></div>
-      </div>
+        <div class="inp-row">
+          <span class="inp-label">Shooter Heading</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-hdg" type="number" value="0" min="0" max="360" step="1">
+              <span class="inp-unit">°</span>
+            </div>
+            <input class="inp-slider" id="s-hdg" type="range" min="0" max="360" step="1" value="0" oninput="syncSliderToField('hdg')">
+          </div>
+        </div>
 
-      <div class="statusRow">
-        <div class="panel tableBox">
-          <div class="boxTitle">Flight Table</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Sample</th>
-                <th>Tempo</th>
-                <th>Alt</th>
-                <th>Vel.</th>
-                <th>Mach</th>
-                <th>Dist.</th>
-              </tr>
-            </thead>
-            <tbody id="flightTable"></tbody>
-          </table>
-        </div>
-        <div class="panel tableBox">
-          <div class="boxTitle">System Notes</div>
-          <table>
-            <tbody>
-              <tr><td>Mode</td><td>Visual flight simulation</td></tr>
-              <tr><td>Guidance</td><td>Not modeled for engagement logic</td></tr>
-              <tr><td>Units</td><td>Metric + Imperial</td></tr>
-              <tr><td>Display</td><td>F-14 inspired HUD / radar style</td></tr>
-              <tr><td>Motor basis</td><td>MK47 Mod 1</td></tr>
-              <tr><td>Airframe basis</td><td>AIM-54C</td></tr>
-            </tbody>
-          </table>
+        <div class="grp-title" style="margin-top:10px">PROPELLANT TEMPERATURE</div>
+        <div class="inp-row">
+          <span class="inp-label">Propellant Temp</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-tmp" type="number" value="20" min="-40" max="70" step="5">
+              <span class="inp-unit">°C</span>
+            </div>
+            <input class="inp-slider" id="s-tmp" type="range" min="-40" max="70" step="5" value="20" oninput="syncSliderToField('tmp')">
+          </div>
         </div>
       </div>
-    </section>
-  </div>
-</div>
+    </div>
+
+    <!-- Target -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">TARGET STATE</span><span class="ps">BOGEY PARAMETERS</span></div>
+      <div class="input-section">
+        <div class="grp-title">POSITION &amp; MOTION</div>
+
+        <!-- Target Altitude -->
+        <div class="inp-row">
+          <span class="inp-label">Target Altitude</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-talt" type="number" value="12000" min="0" max="30000" step="100">
+              <span class="inp-unit" id="u-talt">m</span>
+            </div>
+            <input class="inp-slider" id="s-talt" type="range" min="0" max="30000" step="100" value="12000" oninput="syncSliderToField('talt')">
+          </div>
+        </div>
+
+        <!-- Target Speed — always Mach -->
+        <div class="inp-row">
+          <span class="inp-label">Target Speed</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-tspd" type="number" value="0.90" min="0.05" max="2.50" step="0.05">
+              <span class="inp-unit">M</span>
+            </div>
+            <input class="inp-slider" id="s-tspd" type="range" min="0.05" max="2.50" step="0.05" value="0.90" oninput="syncSliderToField('tspd')">
+            <div class="mach-sub" id="sub-tspd">— m/s</div>
+          </div>
+        </div>
+
+        <!-- Target Range -->
+        <div class="inp-row">
+          <span class="inp-label">Target Range</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-rng" type="number" value="60" min="1" max="180" step="1">
+              <span class="inp-unit" id="u-rng">km</span>
+            </div>
+            <input class="inp-slider" id="s-rng" type="range" min="1" max="180" step="1" value="60" oninput="syncSliderToField('rng')">
+          </div>
+        </div>
+
+        <div class="inp-row">
+          <span class="inp-label">Aspect Angle</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-asp" type="number" value="180" min="0" max="180" step="5">
+              <span class="inp-unit">°</span>
+            </div>
+            <input class="inp-slider" id="s-asp" type="range" min="0" max="180" step="5" value="180" oninput="syncSliderToField('asp')">
+          </div>
+        </div>
+
+        <div class="grp-title" style="margin-top:10px">ENGAGEMENT GEOMETRY</div>
+        <div class="inp-row">
+          <span class="inp-label">Off-Boresight</span>
+          <div>
+            <div class="inp-wrap">
+              <input class="inp-field" id="i-obs" type="number" value="0" min="0" max="80" step="1">
+              <span class="inp-unit">°</span>
+            </div>
+            <input class="inp-slider" id="s-obs" type="range" min="0" max="80" step="1" value="0" oninput="syncSliderToField('obs')">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Errors / Calc button -->
+    <div style="padding:0 0 4px">
+      <div class="err-box"  id="errbox"></div>
+      <div class="warn-box" id="warnbox"></div>
+      <button class="calc-btn" id="calcbtn" onclick="calculate()">▶ &nbsp; COMPUTE FIRE SOLUTION</button>
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- ══════ RIGHT: RESULTS ══════ -->
+  <div class="right-col">
+
+    <!-- ████  HERO TRAJECTORY — FIRST AND PROMINENT  ████ -->
+    <div class="traj-hero">
+      <div class="traj-hero-hdr">
+        <div class="traj-hero-title">TRAJECTORY PROFILE — VERTICAL PLANE</div>
+        <div class="traj-meta">
+          <div class="traj-meta-item">SHOOTER <span class="traj-meta-val" id="tm-sh">—</span></div>
+          <div class="traj-meta-item">TARGET <span class="traj-meta-val" id="tm-tgt">—</span></div>
+          <div class="traj-meta-item">RANGE <span class="traj-meta-val" id="tm-rng">—</span></div>
+          <div class="traj-meta-item">TOF <span class="traj-meta-val" id="tm-tof">—</span></div>
+        </div>
+      </div>
+      <div class="traj-canvas-wrap">
+        <canvas id="traj-canvas"></canvas>
+      </div>
+      <div class="traj-legend">
+        <div class="tleg"><span class="tleg-dot" style="background:linear-gradient(90deg,#00e5ff,#39ff6e)"></span>MISSILE PATH</div>
+        <div class="tleg"><span class="tleg-dot" style="background:#00e5ff"></span>BOOST</div>
+        <div class="tleg"><span class="tleg-dot" style="background:#39ff6e"></span>COAST</div>
+        <div class="tleg"><span class="tleg-dot" style="background:#ffb300"></span>LOFT APEX</div>
+        <div class="tleg"><span class="tleg-dot" style="background:#ff4444"></span>TERMINAL</div>
+        <div class="tleg" style="margin-left:auto"><span class="tleg-dot" style="background:rgba(57,255,110,0.5);width:12px;height:8px;border-radius:2px;opacity:.6"></span>ACTIVE SEEKER ZONE</div>
+      </div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="pnl">
+      <div class="status-row" id="statusrow">
+        <div class="status-item"><div class="sdot sdot-c pulse"></div>AWAITING SOLUTION</div>
+        <div class="status-item"><div class="sdot sdot-a"></div>MOTOR: <span id="s-variant" style="color:var(--t1);margin-left:4px">AIM-54A / MK47</span></div>
+        <div class="status-item"><div class="sdot sdot-g"></div>UT: <span id="s-ut" style="color:var(--t1);margin-left:4px">1.0000</span></div>
+        <div class="status-item"><div class="sdot sdot-c"></div>pk: <span id="s-cp" style="color:var(--t1);margin-left:4px">—</span></div>
+        <div class="status-item" style="margin-left:auto;font-size:8px;color:var(--t3)" id="s-time">—</div>
+      </div>
+    </div>
+
+    <!-- PRIMARY READOUTS -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">FIRE SOLUTION — PRIMARY OUTPUTS</span><span class="ps">COMPUTED RESULTS</span></div>
+      <div class="readout-grid">
+        <div class="rcard" id="rc-pk">    <div class="rlabel">CHAMBER PRESSURE</div><div class="rval c" id="rv-pk">—</div><div class="rsub" id="rs-pk">bar</div></div>
+        <div class="rcard" id="rc-thrust"><div class="rlabel">EST. THRUST</div>     <div class="rval g" id="rv-thrust">—</div><div class="rsub">N (corrected)</div></div>
+        <div class="rcard" id="rc-isp">   <div class="rlabel">SPEC. IMPULSE</div>  <div class="rval a" id="rv-isp">—</div><div class="rsub">seconds</div></div>
+        <div class="rcard" id="rc-timp">  <div class="rlabel">TOTAL IMPULSE</div>  <div class="rval c" id="rv-timp">—</div><div class="rsub">kN·s</div></div>
+        <div class="rcard" id="rc-vmax">  <div class="rlabel">PEAK VELOCITY</div>  <div class="rval g" id="rv-vmax">—</div><div class="rsub" id="rs-vmax">Mach</div></div>
+        <div class="rcard" id="rc-mach">  <div class="rlabel">PEAK MACH #</div>    <div class="rval a" id="rv-mach">—</div><div class="rsub">Mach</div></div>
+        <div class="rcard" id="rc-tof">   <div class="rlabel">TIME OF FLIGHT</div> <div class="rval c" id="rv-tof">—</div><div class="rsub">seconds</div></div>
+        <div class="rcard" id="rc-zon">   <div class="rlabel">ZONE</div>            <div class="rval p" id="rv-zon">—</div><div class="rsub" id="rs-zon">ENVELOPE</div></div>
+      </div>
+    </div>
+
+    <!-- DLZ -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">DLZ — DYNAMIC LAUNCH ZONE</span><span class="ps">RANGE BOUNDARIES</span></div>
+      <div class="dlz-row">
+        <div class="dlz-card"><div class="dlz-label">Rmax (HEAD-ON)</div><div class="dlz-val hi" id="d-rmax">—</div><div class="dlz-sub" id="d-rmax-u">km</div></div>
+        <div class="dlz-card"><div class="dlz-label">Rmax (TAIL-ON)</div><div class="dlz-val ai" id="d-rmax2">—</div><div class="dlz-sub" id="d-rmax2-u">km</div></div>
+        <div class="dlz-card"><div class="dlz-label">Rmin (ABORT)</div> <div class="dlz-val ri" id="d-rmin">—</div><div class="dlz-sub" id="d-rmin-u">km</div></div>
+        <div class="dlz-card"><div class="dlz-label">NEZ</div>           <div class="dlz-val gi" id="d-nez">—</div><div class="dlz-sub" id="d-nez-u">km</div></div>
+        <div class="dlz-card"><div class="dlz-label">Rpi (Predicted)</div><div class="dlz-val" id="d-rpi" style="color:var(--purple)">—</div><div class="dlz-sub" id="d-rpi-u">km</div></div>
+        <div class="dlz-card"><div class="dlz-label">IN ZONE</div>       <div class="dlz-val" id="d-inzone">—</div><div class="dlz-sub" id="d-inzone-sub">—</div></div>
+      </div>
+      <div class="warn-box" id="dlz-warn" style="margin:0 14px 12px;display:none"></div>
+    </div>
+
+    <!-- PHASE TIMELINE -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">FLIGHT PHASE TIMELINE</span><span class="ps">RELATIVE DURATION</span></div>
+      <div class="timeline">
+        <div class="tl-item"><span class="tl-name">BOOST</span>   <div class="tl-bar-wrap"><div class="tl-bar" id="tl-boost" style="width:0%;background:var(--cyan)"></div></div><span class="tl-val" id="tv-boost">—</span></div>
+        <div class="tl-item"><span class="tl-name">COAST</span>   <div class="tl-bar-wrap"><div class="tl-bar" id="tl-coast" style="width:0%;background:var(--green)"></div></div><span class="tl-val" id="tv-coast">—</span></div>
+        <div class="tl-item"><span class="tl-name">LOFT</span>    <div class="tl-bar-wrap"><div class="tl-bar" id="tl-loft"  style="width:0%;background:var(--amber)"></div></div><span class="tl-val" id="tv-loft">—</span></div>
+        <div class="tl-item"><span class="tl-name">TERMINAL</span><div class="tl-bar-wrap"><div class="tl-bar" id="tl-term" style="width:0%;background:var(--red)"></div></div><span class="tl-val" id="tv-term">—</span></div>
+        <div class="tl-item"><span class="tl-name">TOTAL</span>   <div class="tl-bar-wrap"><div class="tl-bar" id="tl-total" style="width:100%;background:var(--t3)"></div></div><span class="tl-val" id="tv-total">—</span></div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">PROPULSION CURVES — THIS ENGAGEMENT</span><span class="ps">ALTITUDE &amp; TEMPERATURE CORRECTED</span></div>
+      <div class="chart-grid">
+        <div>
+          <div class="chart-wrap"><canvas id="ch-thrust"></canvas></div>
+          <div class="clegend" id="leg-thrust"></div>
+        </div>
+        <div>
+          <div class="chart-wrap"><canvas id="ch-pk"></canvas></div>
+          <div class="clegend" id="leg-pk"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PARAM TABLE -->
+    <div class="pnl">
+      <div class="ph"><span class="pt">COMPUTED PARAMETER TABLE</span><span class="ps">FULL BREAKDOWN</span></div>
+      <div style="padding:10px 14px 14px;overflow-x:auto">
+        <table class="ptable">
+          <thead>
+            <tr>
+              <th>PARAMETER</th><th>SYMBOL</th><th>VALUE</th><th>UNIT</th><th>NOTE</th>
+            </tr>
+          </thead>
+          <tbody id="ptbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /right -->
+</div><!-- /wrap -->
 
 <script>
-const CONFIG = {
-  missileMass: 291,
-  propMass: 163,
-  initialMass: 291 + 163,
-  thrustN: 14500,
-  burnTime: 27,
-  rangeRef: 180000,
-  hMax: 25000,
-  machRef: 4.0,
-  diameterMm: 380,
-  seaLevelSound: 340.29
+// ══════════════════════════════════════════════════════════
+//  MISSILE DATABASE
+// ══════════════════════════════════════════════════════════
+const VARIANTS = {
+  A_Mk47:{ name:'AIM-54A / MK47', M_af:281, M_prop:163, burn_time:27, thrust:13800, loft_factor:21, loft_angle:0.17, Diam:0.38, Nr_max:22, D_max:180000, D_min:700, H_max:25000, ccm:1.0, pn:4, active_dist:18520, DLZ:{r180_1k:44000,r0_1k:20000,r180_5k:72000,r0_5k:28000,r180_10k:120000,r0_10k:46000}},
+  A_Mk60:{ name:'AIM-54A / MK60', M_af:281, M_prop:163, burn_time:27, thrust:13800, loft_factor:21, loft_angle:0.17, Diam:0.38, Nr_max:22, D_max:180000, D_min:700, H_max:25000, ccm:1.0, pn:4, active_dist:18520, DLZ:{r180_1k:44000,r0_1k:20000,r180_5k:72000,r0_5k:28000,r180_10k:120000,r0_10k:46000}},
+  C_Mk47:{ name:'AIM-54C / MK47', M_af:291, M_prop:163, burn_time:27, thrust:14500, loft_factor:21, loft_angle:0.17, Diam:0.38, Nr_max:22, D_max:180000, D_min:700, H_max:25000, ccm:0.2, pn:4, active_dist:18520, DLZ:{r180_1k:46000,r0_1k:22000,r180_5k:75000,r0_5k:30000,r180_10k:125000,r0_10k:48000}},
+  C_Mk60:{ name:'AIM-54C / MK60', M_af:291, M_prop:163, burn_time:27, thrust:13800, loft_factor:21, loft_angle:0.17, Diam:0.38, Nr_max:22, D_max:180000, D_min:700, H_max:25000, ccm:0.2, pn:4, active_dist:18520, DLZ:{r180_1k:44000,r0_1k:20000,r180_5k:72000,r0_5k:28000,r180_10k:120000,r0_10k:46000}},
 };
 
-const presets = {
-  custom: {alt:12000, speed:1450, pitch:18, duration:120, loft:0.17, drag:1.00},
-  highFast: {alt:14000, speed:1700, pitch:20, duration:130, loft:0.19, drag:0.98},
-  medium: {alt:9000, speed:1200, pitch:16, duration:115, loft:0.17, drag:1.00},
-  lowFast: {alt:2500, speed:1550, pitch:12, duration:95, loft:0.13, drag:1.05}
+// PDF altitude performance table (T=+20°C)
+const ALT_PERF = [
+  {H:0,     Pa:101300, imp:356217, thrust:15030, isp:216.1},
+  {H:5000,  Pa:54045,  imp:405436, thrust:17107, isp:246.0},
+  {H:10000, Pa:26491,  imp:434135, thrust:18318, isp:263.4},
+  {H:15000, Pa:12107,  imp:449117, thrust:18950, isp:272.5},
+  {H:20000, Pa:5527,   imp:455971, thrust:19239, isp:276.7},
+];
+
+const Wk = 2.11e-3, Tn = 20, g0 = 9.80665;
+
+// ── STATE ──
+let unit = 'si';
+let currentVariant = 'A_Mk47';
+const charts = {};
+let lastResult = null;
+
+// ══════════════════════════════════════════════════════════
+//  UNIT CONVERSIONS  (all internal physics in SI)
+// ══════════════════════════════════════════════════════════
+// Altitude: fields always store display unit value; we convert to metres for physics
+const M_PER_FT = 0.3048;
+const FT_PER_M = 1 / M_PER_FT;
+
+function altToM(displayVal) {
+  // display is metres (SI) or feet (IMP)
+  return unit === 'si' ? +displayVal : +displayVal * M_PER_FT;
+}
+function altFromM(metres) {
+  return unit === 'si' ? metres : metres * FT_PER_M;
+}
+
+// Speed: fields always store Mach; we convert to m/s for physics using local speed of sound
+// We use ISA sea-level a=340.29 m/s for slider labels; physics uses altitude-correct a
+const A_SL = 340.29;
+function machToMs(mach, a = A_SL) { return mach * a; }
+function msToMach(ms, a = A_SL)   { return ms / a; }
+
+// Range: display in km (both units), internal in metres
+function rngToM(displayVal) { return +displayVal * 1000; }
+function rngFromM(m) { return m / 1000; }
+
+// ══════════════════════════════════════════════════════════
+//  ATMOSPHERE (ISA)
+// ══════════════════════════════════════════════════════════
+function isa(H) {
+  if (H < 11000) {
+    const T = 288.15 - 0.0065 * H;
+    const P = 101325 * Math.pow(T / 288.15, 5.2561);
+    const rho = P / (287.058 * T);
+    return {T, P, rho, a: Math.sqrt(1.4 * 287.058 * T)};
+  } else {
+    const T = 216.65;
+    const P = 22632.1 * Math.exp(-0.0001577 * (H - 11000));
+    const rho = P / (287.058 * T);
+    return {T, P, rho, a: Math.sqrt(1.4 * 287.058 * T)};
+  }
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function interpAlt(H, key) {
+  if (H <= 0)     return ALT_PERF[0][key];
+  if (H >= 20000) return ALT_PERF[4][key];
+  for (let i = 0; i < ALT_PERF.length - 1; i++) {
+    const lo = ALT_PERF[i], hi = ALT_PERF[i+1];
+    if (H >= lo.H && H <= hi.H) return lerp(lo[key], hi[key], (H - lo.H) / (hi.H - lo.H));
+  }
+  return ALT_PERF[0][key];
+}
+
+// ══════════════════════════════════════════════════════════
+//  SLIDER CONFIG
+//  Each entry: { inp, sldr, min, max, step }
+//  For altitude fields, min/max are stored in DISPLAY units
+//  and updated when unit changes. Speed fields are always Mach.
+// ══════════════════════════════════════════════════════════
+const SLIDERS = {
+  // altitude — max depends on unit; configured at setUnit time
+  alt:  { inp:'i-alt',  sldr:'s-alt',  min:0, max:20000, step:100  },
+  talt: { inp:'i-talt', sldr:'s-talt', min:0, max:30000, step:100  },
+  // speed — always Mach
+  spd:  { inp:'i-spd',  sldr:'s-spd',  min:0.10, max:3.00, step:0.05 },
+  tspd: { inp:'i-tspd', sldr:'s-tspd', min:0.05, max:2.50, step:0.05 },
+  // others — unit-independent
+  hdg:  { inp:'i-hdg',  sldr:'s-hdg',  min:0, max:360,  step:1  },
+  tmp:  { inp:'i-tmp',  sldr:'s-tmp',  min:-40,max:70,   step:5  },
+  rng:  { inp:'i-rng',  sldr:'s-rng',  min:1,  max:180,  step:1  },
+  asp:  { inp:'i-asp',  sldr:'s-asp',  min:0,  max:180,  step:5  },
+  obs:  { inp:'i-obs',  sldr:'s-obs',  min:0,  max:80,   step:1  },
 };
 
-const els = {
-  alt: document.getElementById('alt'),
-  speed: document.getElementById('speed'),
-  pitch: document.getElementById('pitch'),
-  duration: document.getElementById('duration'),
-  loft: document.getElementById('loft'),
-  drag: document.getElementById('drag'),
-  presetSelect: document.getElementById('presetSelect'),
-  runBtn: document.getElementById('runBtn'),
-  resetBtn: document.getElementById('resetBtn'),
-  altHint: document.getElementById('altHint'),
-  speedHint: document.getElementById('speedHint'),
-  radar: document.getElementById('radarCanvas'),
-  speedChart: document.getElementById('speedChart'),
-  altChart: document.getElementById('altChart'),
-  thrustChart: document.getElementById('thrustChart'),
-  massChart: document.getElementById('massChart'),
-  table: document.getElementById('flightTable'),
-  hudTL: document.getElementById('hudTL'),
-  hudTR: document.getElementById('hudTR'),
-  hudBL: document.getElementById('hudBL'),
-  hudBR: document.getElementById('hudBR'),
-};
-
-function fmt(n, d=0){ return Number(n).toLocaleString('pt-BR', {maximumFractionDigits:d, minimumFractionDigits:d}); }
-function mToFt(m){ return m * 3.28084; }
-function kgToLb(kg){ return kg * 2.20462; }
-function kmhToKts(kmh){ return kmh * 0.539957; }
-function msToKmh(ms){ return ms * 3.6; }
-function kmToNm(km){ return km * 0.539957; }
-function soundSpeed(altM){
-  const a = Math.max(295, CONFIG.seaLevelSound - (altM * 0.0018));
-  return a;
-}
-function density(altM){
-  return 1.225 * Math.exp(-altM / 8500);
+function syncSliderToField(key) {
+  const m = SLIDERS[key];
+  const v = +document.getElementById(m.sldr).value;
+  document.getElementById(m.inp).value = v;
+  updateSliderPct(key, v);
+  updateMachSub(key, v);
 }
 
-function updateHints(){
-  els.altHint.textContent = `${fmt(els.alt.value)} m / ${fmt(mToFt(+els.alt.value))} ft`;
-  els.speedHint.textContent = `${fmt(els.speed.value)} km/h / ${fmt(kmhToKts(+els.speed.value))} kt`;
+function syncFieldToSlider(key) {
+  const m = SLIDERS[key];
+  const v = +document.getElementById(m.inp).value;
+  document.getElementById(m.sldr).value = v;
+  updateSliderPct(key, v);
+  updateMachSub(key, v);
 }
 
-function applyPreset(name){
-  const p = presets[name] || presets.custom;
-  els.alt.value = p.alt;
-  els.speed.value = p.speed;
-  els.pitch.value = p.pitch;
-  els.duration.value = p.duration;
-  els.loft.value = p.loft;
-  els.drag.value = p.drag;
-  els.presetSelect.value = name;
-  updateHints();
+function updateSliderPct(key, val) {
+  const m = SLIDERS[key];
+  const pct = Math.max(0, Math.min(100, (val - m.min) / (m.max - m.min) * 100));
+  document.getElementById(m.sldr).style.setProperty('--pct', pct.toFixed(1) + '%');
 }
 
-document.querySelectorAll('.preset').forEach(btn => btn.addEventListener('click', () => {
-  applyPreset(btn.dataset.preset);
-  run();
-}));
-els.presetSelect.addEventListener('change', e => {
-  applyPreset(e.target.value);
-  run();
-});
-[els.alt, els.speed].forEach(el => el.addEventListener('input', updateHints));
-els.runBtn.addEventListener('click', run);
-els.resetBtn.addEventListener('click', () => { applyPreset('custom'); run(); });
+function updateMachSub(key, machVal) {
+  // Only for speed fields
+  const subId = key === 'spd' ? 'sub-spd' : key === 'tspd' ? 'sub-tspd' : null;
+  if (!subId) return;
+  const ms = machToMs(+machVal);
+  document.getElementById(subId).textContent = ms.toFixed(0) + ' m/s  ·  ' + (ms * 1.94384).toFixed(0) + ' kts';
+}
 
-function simulate(){
-  const alt0 = +els.alt.value;
-  const v0 = (+els.speed.value) / 3.6;
-  const pitch0 = (+els.pitch.value) * Math.PI / 180;
-  const loft = +els.loft.value;
-  const dragScale = +els.drag.value;
-  const duration = +els.duration.value;
+function initSliders() {
+  Object.keys(SLIDERS).forEach(key => {
+    const m = SLIDERS[key];
+    const inp = document.getElementById(m.inp);
+    inp.addEventListener('input', () => syncFieldToSlider(key));
+    syncSliderToField(key);
+  });
+}
 
-  const dt = 0.25;
-  const data = [];
-  let x = 0, y = alt0;
-  let vx = v0 * Math.cos(pitch0);
-  let vy = v0 * Math.sin(pitch0);
-  let mass = CONFIG.initialMass;
+// ══════════════════════════════════════════════════════════
+//  UNIT TOGGLE
+//  Altitude fields flip between metres and feet.
+//  Speed fields stay in Mach — no change needed.
+//  Range stays in km.
+// ══════════════════════════════════════════════════════════
+function setUnit(u) {
+  const prevUnit = unit;
+  unit = u;
+  document.getElementById('btn-si').classList.toggle('on', u === 'si');
+  document.getElementById('btn-imp').classList.toggle('on', u === 'imp');
 
-  for(let t = 0; t <= duration; t += dt){
-    const speed = Math.max(0.1, Math.hypot(vx, vy));
-    const rho = density(y);
-    const q = 0.5 * rho * speed * speed;
+  const si = u === 'si';
 
-    const sound = soundSpeed(y);
-    const mach = speed / sound;
+  // --- Convert altitude field values ---
+  ['alt','talt'].forEach(key => {
+    const inp = document.getElementById(SLIDERS[key].inp);
+    const currentDisplay = +inp.value;
+    // Convert stored display value to metres then to new display unit
+    const inMetres = prevUnit === 'si' ? currentDisplay : currentDisplay * M_PER_FT;
+    const newDisplay = si ? inMetres : inMetres * FT_PER_M;
 
-    const thrust = t <= CONFIG.burnTime ? CONFIG.thrustN : 0;
-    if(t <= CONFIG.burnTime){
-      mass = CONFIG.initialMass - CONFIG.propMass * (t / CONFIG.burnTime);
-    } else {
-      mass = CONFIG.initialMass - CONFIG.propMass;
+    // Update slider range and step for new unit
+    if (key === 'alt') {
+      const maxM  = 20000; // 20 000 m ≈ 65 600 ft, but we allow 50 000 ft
+      const maxFt = 50000;
+      SLIDERS[key].max  = si ? maxM  : maxFt;
+      SLIDERS[key].step = si ? 100   : 500;
+      const sldr = document.getElementById(SLIDERS[key].sldr);
+      sldr.max  = SLIDERS[key].max;
+      sldr.step = SLIDERS[key].step;
+    }
+    if (key === 'talt') {
+      const maxM  = 30000;
+      const maxFt = 50000; // 50 000 ft ceiling for target
+      SLIDERS[key].max  = si ? maxM  : maxFt;
+      SLIDERS[key].step = si ? 100   : 500;
+      const sldr = document.getElementById(SLIDERS[key].sldr);
+      sldr.max  = SLIDERS[key].max;
+      sldr.step = SLIDERS[key].step;
     }
 
-    const pitch = Math.atan2(vy, vx);
-    const loftBias = t < 18 ? loft * 0.6 : loft * 0.1;
-    const alpha = Math.max(-0.4, Math.min(0.6, (pitch0 + loftBias) - pitch));
+    inp.value = Math.round(newDisplay / SLIDERS[key].step) * SLIDERS[key].step;
+    document.getElementById(SLIDERS[key].sldr).value = inp.value;
+    updateSliderPct(key, +inp.value);
 
-    const dragCoeff = (0.035 + 0.02 * Math.max(0, mach - 0.9) + 0.008 * Math.max(0, mach - 2.2)) * dragScale;
-    const area = 0.113;
-    const drag = q * area * dragCoeff;
-    const liftCoeff = Math.max(-0.2, Math.min(1.0, 0.42 * alpha + 0.08));
-    const lift = q * area * liftCoeff;
+    // Unit label
+    document.getElementById(key === 'alt' ? 'u-alt' : 'u-talt').textContent = si ? 'm' : 'ft';
+  });
 
-    const tx = thrust * Math.cos(pitch);
-    const ty = thrust * Math.sin(pitch);
+  // Range label stays km in both modes
+  document.getElementById('u-rng').textContent = 'km';
 
-    const dragX = drag * (vx / speed);
-    const dragY = drag * (vy / speed);
-
-    const liftX = -lift * (vy / speed);
-    const liftY =  lift * (vx / speed);
-
-    const ax = (tx - dragX + liftX) / mass;
-    const ay = (ty - dragY + liftY) / mass - 9.81;
-
-    vx += ax * dt;
-    vy += ay * dt;
-    x += vx * dt;
-    y += vy * dt;
-
-    if(y < 0){ y = 0; vy = 0; }
-
-    data.push({
-      t, x, y, vx, vy, speed, mach, thrust, mass
-    });
-
-    if(y <= 0 && t > 6) break;
+  // Refresh results if available
+  if (lastResult) {
+    updateReadouts(lastResult);
+    updateDLZ(lastResult);
+    updateParamTable(lastResult);
+    drawTrajectory(lastResult);
   }
-
-  return data;
 }
 
-function setCards(data){
-  const peakMach = Math.max(...data.map(d => d.mach));
-  const peakAlt = Math.max(...data.map(d => d.y));
-  const end = data[data.length - 1];
-  const endDistKm = end.x / 1000;
-  const endSpeedKmh = msToKmh(end.speed);
-  document.getElementById('maxMachCard').textContent = fmt(peakMach, 2);
-  document.getElementById('maxMachSub').textContent = `peak visual`;
-  document.getElementById('maxAltCard').textContent = `${fmt(peakAlt)} m`;
-  document.getElementById('maxAltSub').textContent = `${fmt(mToFt(peakAlt))} ft`;
-  document.getElementById('burnCard').textContent = `${fmt(CONFIG.burnTime,1)} s`;
-  document.getElementById('rangeCard').textContent = `${fmt(endDistKm,1)} km`;
-  document.getElementById('endSpeedCard').textContent = `${fmt(endSpeedKmh)} km/h`;
-  document.getElementById('massCard').textContent = `${fmt(end.mass)} kg`;
+// ══════════════════════════════════════════════════════════
+//  DLZ
+// ══════════════════════════════════════════════════════════
+function computeDLZ(v, shooterH, shooterV_ms, targetV_ms, aspectDeg, obs) {
+  const dlz = v.DLZ;
+  const H_km = shooterH / 1000;
+  let r180, r0;
+  if      (H_km <= 1) { r180=dlz.r180_1k; r0=dlz.r0_1k; }
+  else if (H_km <= 5) { const t=(H_km-1)/4; r180=lerp(dlz.r180_1k,dlz.r180_5k,t); r0=lerp(dlz.r0_1k,dlz.r0_5k,t); }
+  else if (H_km <=10) { const t=(H_km-5)/5; r180=lerp(dlz.r180_5k,dlz.r180_10k,t); r0=lerp(dlz.r0_5k,dlz.r0_10k,t); }
+  else                { const t=Math.min((H_km-10)/10,1); r180=lerp(dlz.r180_10k,dlz.r180_10k*1.18,t); r0=lerp(dlz.r0_10k,dlz.r0_10k*1.12,t); }
+
+  // Speed corrections (dR/dV)
+  const dV_sh  = (shooterV_ms - 250) * 50;
+  const dV_tgt = (targetV_ms  - 250) * (-45);
+  r180 += dV_sh + dV_tgt;
+  r0   += dV_sh + dV_tgt * 0.6;
+
+  // Aspect interpolation
+  const t_asp = aspectDeg / 180;
+  const Rmax = lerp(r0, r180, t_asp);
+
+  // OBS penalty
+  const obsFactor = Math.max(0.3, Math.cos(obs * Math.PI / 180));
+  const Rmax_eff = Rmax * obsFactor;
+
+  const Rmin = 3500 + shooterV_ms * 2;
+  const NEZ  = r180 * 0.28 * Math.min(1, 250 / Math.max(targetV_ms, 100));
+
+  return {
+    Rmax:   Math.max(Rmin + 1000, Rmax_eff),
+    RmaxTO: Math.max(Rmin + 500,  r0 * obsFactor),
+    Rmin:   Math.max(700, Rmin),
+    NEZ:    Math.max(1000, NEZ),
+  };
 }
 
-function drawRadar(data){
-  const c = els.radar;
-  const ctx = c.getContext('2d');
-  const w = c.width, h = c.height;
-  ctx.clearRect(0,0,w,h);
+// ══════════════════════════════════════════════════════════
+//  CORE CALCULATOR
+// ══════════════════════════════════════════════════════════
+function calculate() {
+  const btn = document.getElementById('calcbtn');
+  btn.classList.add('calculating');
+  btn.textContent = '⟳  COMPUTING...';
+  setTimeout(() => {
+    try { _doCalc(); } catch(e) { console.error(e); }
+    btn.classList.remove('calculating');
+    btn.textContent = '▶   COMPUTE FIRE SOLUTION';
+  }, 180);
+}
 
-  const cx = w/2, cy = h/2, r = Math.min(w,h)*0.46;
+function _doCalc() {
+  const v = VARIANTS[currentVariant];
 
-  ctx.fillStyle = '#04100b';
-  ctx.fillRect(0,0,w,h);
+  // Read values — convert altitude to metres for physics
+  const shooterH = altToM(document.getElementById('i-alt').value);
+  const targetH  = altToM(document.getElementById('i-talt').value);
+  const range    = rngToM(document.getElementById('i-rng').value);   // km → m
+  const asp      = +document.getElementById('i-asp').value;
+  const obs      = +document.getElementById('i-obs').value;
+  const Tp       = +document.getElementById('i-tmp').value;
 
-  // glow
-  const grd = ctx.createRadialGradient(cx,cy,0,cx,cy,r*1.05);
-  grd.addColorStop(0,'rgba(90,255,170,.08)');
-  grd.addColorStop(0.6,'rgba(20,60,35,.10)');
-  grd.addColorStop(1,'rgba(0,0,0,.35)');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0,0,w,h);
+  // Speed: Mach → m/s using ISA at shooter altitude
+  const atm_sh = isa(shooterH);
+  const shooterV = machToMs(+document.getElementById('i-spd').value,  atm_sh.a);
+  const targetV  = machToMs(+document.getElementById('i-tspd').value, atm_sh.a);
 
-  // rings
-  ctx.strokeStyle = 'rgba(132,255,190,.18)';
-  ctx.lineWidth = 1;
-  for(let i=1;i<=5;i++){
-    ctx.beginPath();
-    ctx.arc(cx,cy,r*i/5,0,Math.PI*2);
-    ctx.stroke();
+  // 1) Temperature correction
+  const UT = 1 + Wk * (Tp - Tn);
+
+  // 2) Propellant / burn time
+  const M_prop_eff = v.M_prop * UT;
+  const burn_time  = v.burn_time / UT;
+
+  // 3) Average engagement altitude
+  const H_avg = (shooterH + targetH) / 2;
+  const atm = isa(H_avg);
+
+  // 4) Chamber pressure
+  const pk = 45 * UT * (1 + (101325 - atm.P) / 101325 * 0.08);
+
+  // 5–7) Thrust / Isp / Total impulse
+  const thrust_corrected = interpAlt(H_avg, 'thrust') * UT;
+  const isp              = interpAlt(H_avg, 'isp')    * Math.sqrt(UT);
+  const total_imp        = interpAlt(H_avg, 'imp')    * UT;
+
+  // 8) Mass flow
+  const mdot = M_prop_eff / burn_time;
+
+  // 9) Tsiolkovsky ΔV
+  const M_total  = v.M_af + M_prop_eff;
+  const dV_rocket = isp * g0 * Math.log(M_total / v.M_af);
+
+  // 10) Peak velocity → Mach
+  const dV_eff  = dV_rocket * 0.78;
+  const V_peak  = shooterV + dV_eff;
+  const mach_peak = V_peak / atm.a;
+
+  // 11) Time of flight
+  const t_boost    = burn_time;
+  const V_coast_avg = V_peak * 0.55;
+  const range_eff  = Math.sqrt(range * range + (targetH - shooterH) ** 2);
+  const range_boost = V_peak * t_boost * 0.5;
+  const t_coast    = Math.max(0, (range_eff - range_boost) / V_coast_avg);
+  const loft_active = range > 30000;
+  const t_loft     = loft_active ? Math.min(15, t_coast * 0.35) : 0;
+  const t_terminal = Math.max(3, range_eff / V_peak * 0.08);
+  const t_total    = t_boost + t_coast + t_terminal;
+
+  // 12) DLZ
+  const dlz = computeDLZ(v, shooterH, shooterV, targetV, asp, obs);
+
+  // 13) Zone
+  const inZone = range <= dlz.Rmax && range >= dlz.Rmin;
+  const inNEZ  = range <= dlz.NEZ;
+  let zone, zoneColor;
+  if      (range > dlz.Rmax)           { zone='OUT OF RANGE'; zoneColor='r'; }
+  else if (range < dlz.Rmin)           { zone='TOO CLOSE';    zoneColor='r'; }
+  else if (inNEZ)                       { zone='NEZ — KILL';   zoneColor='g'; }
+  else if (range > dlz.Rmax * 0.75)    { zone='MARGINAL';     zoneColor='a'; }
+  else                                  { zone='IN ENVELOPE';  zoneColor='g'; }
+
+  // 14) Warn / error
+  const warn=[], errors=[];
+  if (Tp > 50)          warn.push('HIGH PROPELLANT TEMP → REDUCED BURN TIME');
+  if (Tp < -20)         warn.push('LOW PROPELLANT TEMP → ELEVATED PRESSURE RISK');
+  if (obs > 50)         warn.push('HIGH OBS ANGLE → SEEKER TRACK DEGRADED');
+  if (targetV > 500 && asp < 30) warn.push('FAST TAIL-CHASE — KINEMATIC LIMITS');
+  if (shooterH > 18000) warn.push('NEAR CEILING — MANEUVERABILITY LIMITED');
+  if (range < v.D_min)  errors.push(`RANGE ${(range/1000).toFixed(0)}km < Dmin ${(v.D_min/1000).toFixed(1)}km`);
+  if (range > v.D_max)  errors.push(`RANGE ${(range/1000).toFixed(0)}km > Dmax ${(v.D_max/1000).toFixed(0)}km`);
+  if (shooterV < 100)   errors.push('SHOOTER TOO SLOW — MIN 0.3M');
+
+  const wb = document.getElementById('warnbox');
+  const eb = document.getElementById('errbox');
+  wb.className = 'warn-box' + (warn.length ? ' show' : ''); wb.innerHTML = warn.length ? '⚡ ' + warn.join(' · ') : '';
+  eb.className = 'err-box'  + (errors.length ? ' show' : ''); eb.innerHTML = errors.length ? '⚠ ' + errors.join(' · ') : '';
+
+  lastResult = {
+    pk, thrust_corrected, isp, total_imp, V_peak, mach_peak,
+    t_total, t_boost, t_coast, t_loft, t_terminal,
+    dlz, zone, zoneColor, UT, burn_time, M_prop_eff, mdot,
+    dV_rocket, dV_eff, inNEZ, inZone, atm, H_avg,
+    shooterH, targetH, range, asp, obs, Tp, v, shooterV, targetV,
+  };
+
+  updateReadouts(lastResult);
+  updateStatus(lastResult);
+  updateDLZ(lastResult);
+  updateTimeline(lastResult);
+  updateParamTable(lastResult);
+  buildThrustChart(lastResult);
+  buildPkChart(lastResult);
+  drawTrajectory(lastResult);
+  updateTrajectoryMeta(lastResult);
+}
+
+// ══════════════════════════════════════════════════════════
+//  UI UPDATERS
+// ══════════════════════════════════════════════════════════
+function fmt(v, dec=1) { return (v === null || isNaN(v)) ? '—' : (+v).toFixed(dec); }
+function fmtN(v) { return v>=1e6 ? (v/1e6).toFixed(2)+'M' : v>=1e3 ? (v/1e3).toFixed(1)+'k' : Math.round(v)+''; }
+
+function updateReadouts(r) {
+  // Primary outputs — peak velocity & Mach always shown as Mach
+  setCard('rv-pk',     fmt(r.pk,1),            'rc-pk',     'lit');
+  setCard('rv-thrust', fmtN(r.thrust_corrected),'rc-thrust', 'lit-g');
+  setCard('rv-isp',    fmt(r.isp,1),            'rc-isp',    'lit-a');
+  setCard('rv-timp',   (r.total_imp/1000).toFixed(1),'rc-timp','lit');
+  // Peak velocity always in Mach
+  setCard('rv-vmax',   fmt(r.mach_peak,2),      'rc-vmax',   'lit-g');
+  setCard('rv-mach',   fmt(r.mach_peak,2),      'rc-mach',   'lit-a');
+  setCard('rv-tof',    fmt(r.t_total,1),         'rc-tof',    'lit');
+  setCard('rv-zon',    r.zone,                   'rc-zon',    r.zoneColor==='g'?'lit-g':r.zoneColor==='a'?'lit-a':'lit-r');
+  document.getElementById('rv-zon').className = 'rval ' + r.zoneColor;
+  document.getElementById('rs-pk').textContent  = 'bar · H=' + (r.H_avg/1000).toFixed(1)+'km avg';
+}
+
+function setCard(valId, val, cardId, cls) {
+  document.getElementById(valId).textContent = val;
+  if (cardId) document.getElementById(cardId).className = 'rcard ' + cls;
+}
+
+function updateStatus(r) {
+  document.getElementById('s-variant').textContent = r.v.name;
+  document.getElementById('s-ut').textContent = r.UT.toFixed(4) + (r.UT>1?' (+HOT)':r.UT<1?' (COLD)':'');
+  document.getElementById('s-cp').textContent = fmt(r.pk,1) + ' bar';
+  document.getElementById('s-time').textContent = new Date().toISOString().slice(11,19) + ' UTC';
+  const s = document.getElementById('sys-status');
+  if (r.zone === 'OUT OF RANGE' || r.zone === 'TOO CLOSE') {
+    s.textContent='NO SOLUTION'; s.className='chip chip-a blink';
+  } else {
+    s.textContent='SOLUTION VALID'; s.className='chip chip-g';
   }
-  for(let a=0;a<360;a+=30){
-    const ang = a * Math.PI / 180;
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(ang)*r*0.08, cy + Math.sin(ang)*r*0.08);
-    ctx.lineTo(cx + Math.cos(ang)*r, cy + Math.sin(ang)*r);
-    ctx.stroke();
-  }
+}
 
-  // sweep
-  const sweep = (Date.now()/40) % 360;
-  const sweepRad = sweep * Math.PI / 180;
-  const sweepGrad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
-  sweepGrad.addColorStop(0,'rgba(132,255,190,.18)');
-  sweepGrad.addColorStop(1,'rgba(132,255,190,0)');
+function updateTrajectoryMeta(r) {
+  const si = unit === 'si';
+  const fmtH = h => si ? (h/1000).toFixed(1)+'km' : (h*FT_PER_M/1000).toFixed(1)+'kft';
+  document.getElementById('tm-sh').textContent  = fmtH(r.shooterH) + ' M' + fmt(r.shooterV/r.atm.a,2);
+  document.getElementById('tm-tgt').textContent = fmtH(r.targetH)  + ' M' + fmt(r.targetV/r.atm.a,2);
+  document.getElementById('tm-rng').textContent = (r.range/1000).toFixed(0) + 'km';
+  document.getElementById('tm-tof').textContent = r.t_total.toFixed(0) + 's';
+}
+
+function updateDLZ(r) {
+  const si = unit === 'si';
+  const fmtDist = m => (m/1000).toFixed(1);
+  const distUnit = 'km'; // always km in both modes for DLZ
+
+  document.getElementById('d-rmax').textContent  = fmtDist(r.dlz.Rmax);
+  document.getElementById('d-rmax2').textContent = fmtDist(r.dlz.RmaxTO);
+  document.getElementById('d-rmin').textContent  = fmtDist(r.dlz.Rmin);
+  document.getElementById('d-nez').textContent   = fmtDist(r.dlz.NEZ);
+  ['d-rmax-u','d-rmax2-u','d-rmin-u','d-nez-u'].forEach(id => document.getElementById(id).textContent = distUnit);
+
+  const closure = r.V_peak * 0.6 - r.targetV * Math.cos((180-r.asp)*Math.PI/180);
+  const Rpi = Math.max(0, r.range - closure * r.t_total * 0.3);
+  document.getElementById('d-rpi').textContent   = fmtDist(Rpi);
+  document.getElementById('d-rpi-u').textContent = distUnit;
+
+  document.getElementById('d-inzone').textContent = r.inZone ? 'YES' : 'NO';
+  document.getElementById('d-inzone').style.color = r.inZone ? 'var(--green)' : 'var(--red)';
+  document.getElementById('d-inzone-sub').textContent = r.inNEZ ? 'NEZ ACHIEVED' : r.inZone ? 'WITHIN ENVELOPE' : 'OOE';
+
+  const dw = document.getElementById('dlz-warn');
+  if (r.range > r.dlz.Rmax) {
+    Object.assign(dw.style, {display:'block',color:'var(--amber)',borderColor:'rgba(255,179,0,0.4)'});
+    dw.textContent = '⚠ RANGE ' + (r.range/1000).toFixed(1) + 'km EXCEEDS Rmax ' + (r.dlz.Rmax/1000).toFixed(1)+'km';
+  } else if (r.range < r.dlz.Rmin) {
+    Object.assign(dw.style, {display:'block',color:'var(--red)',borderColor:'rgba(255,68,68,0.5)'});
+    dw.textContent = '⚠ RANGE ' + (r.range/1000).toFixed(1) + 'km BELOW Rmin — ABORT';
+  } else {
+    dw.style.display = 'none';
+  }
+}
+
+function updateTimeline(r) {
+  const T = r.t_total;
+  const pct = t => Math.min(100, t/T*100).toFixed(1)+'%';
+  ['boost','coast','loft','term'].forEach((ph, i) => {
+    const t = [r.t_boost, r.t_coast, r.t_loft, r.t_terminal][i];
+    document.getElementById('tl-'+ph).style.width = pct(t);
+    document.getElementById('tv-'+ph).textContent = t.toFixed(1)+'s';
+  });
+  document.getElementById('tv-total').textContent = T.toFixed(1)+'s';
+}
+
+function updateParamTable(r) {
+  const si = unit==='si';
+  const fH = h => si ? (h/1000).toFixed(1)+' km' : (h*FT_PER_M).toFixed(0)+' ft';
+  const rows = [
+    ['Missile Variant',            '',           r.v.name,                                  '—',      '—'],
+    ['Airframe Mass',              'M_af',       r.v.M_af.toFixed(0),                       'kg',     ''],
+    ['Propellant Mass (eff.)',     'M_prop·UT',  r.M_prop_eff.toFixed(1),                   'kg',     'Temp corrected'],
+    ['Total Launch Mass',          'M_total',    (r.v.M_af+r.M_prop_eff).toFixed(1),        'kg',     ''],
+    ['Temp Correction (UT)',       'UT',         r.UT.toFixed(4),                           '—',      'UT=1+Wk·(Tp−20)'],
+    ['Burn Time (corrected)',      't_b',        r.burn_time.toFixed(2),                    's',      '÷ UT'],
+    ['Mass Flow Rate',             'ṁ',          r.mdot.toFixed(2),                         'kg/s',   ''],
+    ['Shooter Altitude',           'H_sh',       fH(r.shooterH),                            '—',      ''],
+    ['Target Altitude',            'H_tgt',      fH(r.targetH),                             '—',      ''],
+    ['Avg Engagement Alt.',        'H_avg',      fH(r.H_avg),                               '—',      ''],
+    ['Shooter Speed',              'V_sh',       (r.shooterV/r.atm.a).toFixed(2)+' M',      'm/s: '+r.shooterV.toFixed(0), ''],
+    ['Target Speed',               'V_tgt',      (r.targetV/r.atm.a).toFixed(2)+' M',       'm/s: '+r.targetV.toFixed(0),  ''],
+    ['Speed of Sound (avg alt)',   'a',          r.atm.a.toFixed(1),                        'm/s',    'ISA'],
+    ['Ambient Pressure (avg alt)', 'Pa',         (r.atm.P/100000).toFixed(3),               'bar',    'ISA'],
+    ['Chamber Pressure',           'pk',         r.pk.toFixed(2),                           'bar',    'Alt+Temp corrected'],
+    ['Thrust (corrected)',         'F',          r.thrust_corrected.toFixed(0),             'N',      'Alt+Temp corrected'],
+    ['Specific Impulse',           'Isp',        r.isp.toFixed(1),                          's',      'Alt interp·√UT'],
+    ['Total Impulse',              'I_tot',      (r.total_imp/1000).toFixed(1),             'kN·s',   ''],
+    ['ΔV Rocket (ideal)',          'ΔV_ideal',   r.dV_rocket.toFixed(0),                    'm/s',    'Tsiolkovsky'],
+    ['ΔV Rocket (effective)',      'ΔV_eff',     r.dV_eff.toFixed(0),                       'm/s',    '78% drag retention'],
+    ['Peak Velocity',              'V_peak',     r.V_peak.toFixed(0)+' m/s',                'M'+r.mach_peak.toFixed(2), ''],
+    ['Boost Phase',                't_boost',    r.t_boost.toFixed(1),                      's',      ''],
+    ['Coast Phase',                't_coast',    r.t_coast.toFixed(1),                      's',      ''],
+    ['Loft Phase',                 't_loft',     r.t_loft.toFixed(1),                       's',      r.t_loft>0?'Active':'Not triggered'],
+    ['Terminal Phase',             't_term',     r.t_terminal.toFixed(1),                   's',      ''],
+    ['Total TOF',                  'TOF',        r.t_total.toFixed(1),                      's',      ''],
+    ['DLZ Rmax (head-on)',         'Rmax_HO',    (r.dlz.Rmax/1000).toFixed(1),              'km',     ''],
+    ['DLZ Rmax (tail-on)',         'Rmax_TO',    (r.dlz.RmaxTO/1000).toFixed(1),            'km',     ''],
+    ['DLZ Rmin',                   'Rmin',       (r.dlz.Rmin/1000).toFixed(1),              'km',     ''],
+    ['NEZ',                        'NEZ',        (r.dlz.NEZ/1000).toFixed(1),               'km',     ''],
+    ['Engagement Zone',            '—',          r.zone,                                    '—',      r.inNEZ?'NEZ':r.inZone?'IN':'OOE'],
+  ];
+  const colors = ['','','','','ai','ai','','','','','hi','ai','','','hi','gi','gi','gi','c','c','gi','ai','','a','','c','hi','ai','ri','gi',''];
+  document.getElementById('ptbody').innerHTML = rows.map((row,i)=>`
+    <tr>
+      <td>${row[0]}</td>
+      <td style="color:var(--t3)">${row[1]}</td>
+      <td class="${colors[i]||''}">${row[2]}</td>
+      <td style="color:var(--t2)">${row[3]}</td>
+      <td style="color:var(--t3);font-size:9px">${row[4]}</td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  CHARTS
+// ══════════════════════════════════════════════════════════
+const COPTS = {
+  responsive:true, maintainAspectRatio:false,
+  animation:{duration:500},
+  interaction:{mode:'index',intersect:false},
+  plugins:{
+    legend:{display:false},
+    tooltip:{
+      backgroundColor:'rgba(5,8,16,0.95)',borderColor:'#132035',borderWidth:1,
+      titleFont:{family:"'Share Tech Mono',monospace",size:9},
+      bodyFont:{family:"'Share Tech Mono',monospace",size:10},
+      titleColor:'#00e5ff',bodyColor:'#c8dff0',padding:8,
+    }
+  },
+  scales:{
+    x:{grid:{color:'rgba(0,150,200,0.06)'},ticks:{color:'#4e7a9a',font:{family:"'Share Tech Mono',monospace",size:8}},border:{color:'#132035'}},
+    y:{grid:{color:'rgba(0,150,200,0.06)'},ticks:{color:'#4e7a9a',font:{family:"'Share Tech Mono',monospace",size:8}},border:{color:'#132035'}},
+  }
+};
+
+function mkDS(label,data,color,dash=[]){
+  return{label,data,borderColor:color,backgroundColor:'transparent',borderWidth:2,borderDash:dash,pointRadius:0,pointHoverRadius:4,tension:.35,fill:false};
+}
+
+function buildThrustChart(r) {
+  const ctx = document.getElementById('ch-thrust').getContext('2d');
+  if (charts.thrust) charts.thrust.destroy();
+  const ts=[], Fb=[], Fc=[];
+  for (let t=0; t<=r.t_total; t+=0.5) {
+    ts.push(t.toFixed(1));
+    if (t <= r.burn_time) {
+      const frac = t/r.burn_time;
+      Fb.push(+(r.thrust_corrected*(1-0.5*frac*frac)).toFixed(0));
+      Fc.push(null);
+    } else { Fb.push(null); Fc.push(0); }
+  }
+  const opts=JSON.parse(JSON.stringify(COPTS));
+  opts.scales.y.title={display:true,text:'Thrust (N)',color:'#4e7a9a',font:{family:"'Share Tech Mono'",size:8}};
+  opts.scales.x.title={display:true,text:'t (s)',    color:'#4e7a9a',font:{family:"'Share Tech Mono'",size:8}};
+  charts.thrust = new Chart(ctx,{type:'line',data:{labels:ts,datasets:[mkDS('BOOST',Fb,'#00e5ff'),mkDS('COAST',Fc,'#39ff6e',[3,3])]},options:opts});
+  buildLeg('leg-thrust',charts.thrust);
+}
+
+function buildPkChart(r) {
+  const ctx = document.getElementById('ch-pk').getContext('2d');
+  if (charts.pk) charts.pk.destroy();
+  const ts=[], pk=[];
+  for (let t=0; t<=r.burn_time+0.5; t+=0.5) {
+    ts.push(t.toFixed(1));
+    if (t<=r.burn_time) {
+      const frac=t/r.burn_time;
+      const shape=t<0.15?(t/0.15):(1-0.65*frac*frac);
+      pk.push(+(r.pk*(0.7+0.55*shape)).toFixed(2));
+    } else pk.push(0);
+  }
+  const opts=JSON.parse(JSON.stringify(COPTS));
+  opts.scales.y.title={display:true,text:'pk (bar)',color:'#4e7a9a',font:{family:"'Share Tech Mono'",size:8}};
+  opts.scales.x.title={display:true,text:'t (s)',   color:'#4e7a9a',font:{family:"'Share Tech Mono'",size:8}};
+  charts.pk = new Chart(ctx,{type:'line',data:{labels:ts,datasets:[mkDS('pk(t)',pk,'#ffb300')]},options:opts});
+  buildLeg('leg-pk',charts.pk);
+}
+
+function buildLeg(cid,chart){
+  const el=document.getElementById(cid); el.innerHTML='';
+  chart.data.datasets.forEach((ds,i)=>{
+    const b=document.createElement('button');
+    b.className='clbtn on';
+    b.innerHTML=`<span class="cldot" style="background:${ds.borderColor}"></span>${ds.label}`;
+    b.onclick=()=>{const m=chart.getDatasetMeta(i);m.hidden=!m.hidden;b.classList.toggle('on',!m.hidden);chart.update();};
+    el.appendChild(b);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  HERO TRAJECTORY CANVAS  (large, full-width, prominent)
+// ══════════════════════════════════════════════════════════
+function drawTrajectory(r) {
+  const canvas = document.getElementById('traj-canvas');
+  // Fit canvas to its container
+  const wrap = canvas.parentElement;
+  canvas.width  = wrap.offsetWidth  || 800;
+  canvas.height = wrap.offsetHeight || 260;
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { l:54, r:24, t:22, b:36 };
+  const gW = W - pad.l - pad.r;
+  const gH = H - pad.t - pad.b;
+
+  const shooterH = r.shooterH, targetH = r.targetH, range = r.range;
+  // Determine loft apex
+  const loft_active = r.t_loft > 0;
+  const maxH_data = Math.max(shooterH, targetH, loft_active ? (shooterH + targetH) / 2 + 10000 : 1);
+  const maxH = maxH_data * 1.3;
+  const maxR = range * 1.08;
+
+  const toX = rx => pad.l + (rx / maxR) * gW;
+  const toY = h  => pad.t + gH - (h / maxH) * gH;
+
+  // ── Dark sky gradient background
+  const skyGrad = ctx.createLinearGradient(0, pad.t, 0, pad.t + gH);
+  skyGrad.addColorStop(0,   'rgba(0,8,24,0.95)');
+  skyGrad.addColorStop(0.6, 'rgba(0,12,30,0.85)');
+  skyGrad.addColorStop(1,   'rgba(0,6,18,0.98)');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(pad.l, pad.t, gW, gH);
+
+  // ── Altitude band shading
+  const bands = [
+    {h0:0,     h1:5000,  color:'rgba(0,80,40,0.06)',  label:'LOW'},
+    {h0:5000,  h1:10000, color:'rgba(0,80,120,0.06)', label:'MED'},
+    {h0:10000, h1:20000, color:'rgba(0,40,100,0.08)', label:'HIGH'},
+    {h0:20000, h1:maxH,  color:'rgba(60,0,100,0.05)', label:'EXOATM'},
+  ];
+  bands.forEach(b => {
+    const y0 = Math.min(pad.t+gH, toY(b.h1));
+    const y1 = Math.max(pad.t,    toY(b.h0));
+    if (y1 > y0) {
+      ctx.fillStyle = b.color;
+      ctx.fillRect(pad.l, y0, gW, y1-y0);
+    }
+  });
+
+  // ── Grid lines
   ctx.save();
-  ctx.translate(cx,cy);
-  ctx.rotate(sweepRad);
-  ctx.beginPath();
-  ctx.moveTo(0,0);
-  ctx.arc(0,0,r,-0.12,0.12);
-  ctx.closePath();
-  ctx.fillStyle = sweepGrad;
-  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,180,255,0.07)'; ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  // horizontal
+  const hStep = maxH > 20000 ? 10000 : maxH > 10000 ? 5000 : 2000;
+  for (let h = 0; h <= maxH; h += hStep) {
+    const y = toY(h);
+    if (y < pad.t || y > pad.t + gH + 1) continue;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + gW, y); ctx.stroke();
+  }
+  // vertical
+  const rStep = range > 100000 ? 20000 : range > 50000 ? 10000 : 5000;
+  for (let rx = 0; rx <= range; rx += rStep) {
+    const x = toX(rx);
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + gH); ctx.stroke();
+  }
   ctx.restore();
 
-  const maxX = Math.max(...data.map(d=>d.x), 1000);
-  const maxY = Math.max(...data.map(d=>d.y), 1000);
-  const scale = Math.min((r*1.65)/maxX, (r*1.65)/maxY);
+  // ── Active seeker zone fill (behind trajectory)
+  const seekerStart = Math.max(0, range - r.v.active_dist);
+  const sx = toX(seekerStart);
+  const tx_end = toX(range);
+  const seekerGrad = ctx.createLinearGradient(sx, 0, tx_end, 0);
+  seekerGrad.addColorStop(0, 'rgba(57,255,110,0)');
+  seekerGrad.addColorStop(1, 'rgba(57,255,110,0.12)');
+  ctx.fillStyle = seekerGrad;
+  ctx.fillRect(sx, pad.t, tx_end - sx, gH);
+  // seeker boundary line
+  ctx.save();
+  ctx.strokeStyle = 'rgba(57,255,110,0.35)'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(sx, pad.t); ctx.lineTo(sx, pad.t+gH); ctx.stroke();
+  ctx.restore();
 
-  // path
+  // ── Trajectory path
+  const loftAlt = loft_active
+    ? Math.min(maxH * 0.88, (shooterH + targetH) / 2 + 10000)
+    : Math.max(shooterH, targetH) * 1.05 + 2000;
+  const boostDist = r.V_peak * r.t_boost * 0.5;
+
+  const pts = [];
+  pts.push({x:0,          y:shooterH});
+  pts.push({x:boostDist,  y:shooterH + (loftAlt - shooterH) * 0.25});
+  if (loft_active) pts.push({x:range*0.42, y:loftAlt});
+  pts.push({x:range*0.80, y:targetH + (loftAlt - targetH) * 0.2});
+  pts.push({x:range,      y:targetH});
+
+  // Path with gradient
+  ctx.save();
   ctx.beginPath();
-  data.forEach((d,i)=>{
-    const px = cx - r*0.82 + d.x*scale;
-    const py = cy + r*0.82 - d.y*scale;
-    if(i===0) ctx.moveTo(px,py);
-    else ctx.lineTo(px,py);
-  });
-  ctx.strokeStyle = 'rgba(120,223,255,.95)';
-  ctx.lineWidth = 2.2;
-  ctx.shadowColor = 'rgba(120,223,255,.35)';
-  ctx.shadowBlur = 16;
+  ctx.moveTo(toX(pts[0].x), toY(pts[0].y));
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i-1], c = pts[i];
+    ctx.bezierCurveTo(
+      toX(p.x + (c.x-p.x)*0.55), toY(p.y),
+      toX(c.x - (c.x-p.x)*0.3),  toY(c.y),
+      toX(c.x), toY(c.y)
+    );
+  }
+  const pathGrad = ctx.createLinearGradient(toX(0), 0, toX(range), 0);
+  pathGrad.addColorStop(0,    '#00e5ff');
+  pathGrad.addColorStop(0.30, '#39ff6e');
+  pathGrad.addColorStop(0.65, '#ffb300');
+  pathGrad.addColorStop(1,    '#ff4444');
+  ctx.strokeStyle = pathGrad;
+  ctx.lineWidth = 3;
+  ctx.shadowColor = '#00e5ff';
+  ctx.shadowBlur  = 8;
   ctx.stroke();
-  ctx.shadowBlur = 0;
+  ctx.restore();
 
-  // points
-  const last = data[data.length-1];
-  const first = data[0];
-  [[first,'rgba(132,255,190,.95)',5],[last,'rgba(255,212,92,.95)',6]].forEach(([d,color,size])=>{
-    const px = cx - r*0.82 + d.x*scale;
-    const py = cy + r*0.82 - d.y*scale;
-    ctx.fillStyle = color;
-    ctx.beginPath(); ctx.arc(px,py,size,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(px,py,size*2.2,0,Math.PI*2); ctx.strokeStyle = color.replace('.95','.25'); ctx.stroke();
-  });
-
-  // labels
-  ctx.fillStyle = 'rgba(132,255,190,.65)';
-  ctx.font = '16px Segoe UI';
-  ctx.fillText('ORIGIN', cx - r*0.82 + 10, cy + r*0.82 - 12);
-  const px = cx - r*0.82 + last.x*scale;
-  const py = cy + r*0.82 - last.y*scale;
-  ctx.fillText('END', px + 10, py - 10);
-
-  const mach = last.mach;
-  els.hudTL.innerHTML = `MODE: TRACK<br>PROFILE: VISUAL`;
-  els.hudTR.innerHTML = `MACH ${fmt(mach,2)}<br>ALT ${fmt(last.y)} m / ${fmt(mToFt(last.y))} ft`;
-  els.hudBL.innerHTML = `RNG ${fmt(last.x/1000,1)} km / ${fmt(kmToNm(last.x/1000),1)} nm<br>T ${fmt(last.t,1)} s`;
-  els.hudBR.innerHTML = `THR ${fmt(last.thrust/1000,1)} kN<br>MASS ${fmt(last.mass,0)} kg`;
-}
-
-function drawChart(canvas, series, opts){
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  ctx.clearRect(0,0,w,h);
-  ctx.fillStyle = '#06100c';
-  ctx.fillRect(0,0,w,h);
-
-  const pad = {l:56,r:18,t:18,b:34};
-  const iw = w - pad.l - pad.r, ih = h - pad.t - pad.b;
-
-  let minX = Math.min(...series.flatMap(s => s.data.map(p => p.x)));
-  let maxX = Math.max(...series.flatMap(s => s.data.map(p => p.x)));
-  let minY = Math.min(...series.flatMap(s => s.data.map(p => p.y)));
-  let maxY = Math.max(...series.flatMap(s => s.data.map(p => p.y)));
-  if(minY === maxY){ maxY += 1; }
-
-  const xMap = x => pad.l + (x - minX) / (maxX - minX || 1) * iw;
-  const yMap = y => pad.t + ih - (y - minY) / (maxY - minY || 1) * ih;
-
-  ctx.strokeStyle = 'rgba(132,255,190,.12)';
-  ctx.lineWidth = 1;
-  for(let i=0;i<=5;i++){
-    const y = pad.t + ih * i / 5;
-    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w-pad.r, y); ctx.stroke();
+  // ── Glow trail (second, thicker, more transparent pass)
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(toX(pts[0].x), toY(pts[0].y));
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i-1], c = pts[i];
+    ctx.bezierCurveTo(
+      toX(p.x + (c.x-p.x)*0.55), toY(p.y),
+      toX(c.x - (c.x-p.x)*0.3),  toY(c.y),
+      toX(c.x), toY(c.y)
+    );
   }
-  for(let i=0;i<=6;i++){
-    const x = pad.l + iw * i / 6;
-    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, h-pad.b); ctx.stroke();
-  }
+  ctx.strokeStyle = 'rgba(0,229,255,0.08)';
+  ctx.lineWidth = 10;
+  ctx.stroke();
+  ctx.restore();
 
-  series.forEach(s => {
-    ctx.beginPath();
-    s.data.forEach((p,i)=>{
-      const x = xMap(p.x), y = yMap(p.y);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.strokeStyle = s.color;
-    ctx.lineWidth = 2.2;
-    ctx.shadowColor = s.color;
-    ctx.shadowBlur = 10;
-    ctx.stroke();
+  // ── Phase dots along the path
+  const phasePts = [
+    {x: boostDist, y: pts[1].y, color:'#00e5ff', label:'BURNOUT'},
+    loft_active ? {x: range*0.42, y: loftAlt, color:'#ffb300', label:'LOFT APEX'} : null,
+    {x: seekerStart, y: lerp(targetH, loftAlt, 0.4), color:'#39ff6e', label:'ACTIVE'},
+  ].filter(Boolean);
+
+  phasePts.forEach(p => {
+    const px = toX(p.x), py = toY(p.y);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 12;
+    ctx.fill();
+    // tick label
     ctx.shadowBlur = 0;
+    ctx.font = 'bold 8px Share Tech Mono,monospace';
+    ctx.fillStyle = p.color;
+    ctx.textAlign = 'center';
+    ctx.fillText(p.label, px, py - 10);
+    ctx.restore();
   });
 
-  ctx.fillStyle = 'rgba(146,183,160,.92)';
-  ctx.font = '12px Segoe UI';
-  for(let i=0;i<=5;i++){
-    const yVal = maxY - (maxY - minY) * i / 5;
-    const y = pad.t + ih * i / 5 + 4;
-    ctx.fillText(fmt(yVal, opts.yDecimals ?? 0), 8, y);
-  }
-  for(let i=0;i<=6;i++){
-    const xVal = minX + (maxX - minX) * i / 6;
-    const x = pad.l + iw * i / 6 - 6;
-    ctx.fillText(fmt(xVal, opts.xDecimals ?? 0), x, h - 10);
+  // ── Shooter icon (triangle pointing right = aircraft)
+  const sx0 = toX(0), sy0 = toY(shooterH);
+  ctx.save();
+  ctx.fillStyle = '#00e5ff';
+  ctx.shadowColor = '#00e5ff'; ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.moveTo(sx0+10, sy0);
+  ctx.lineTo(sx0-2,  sy0-5);
+  ctx.lineTo(sx0-2,  sy0+5);
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.font = '8px Share Tech Mono,monospace'; ctx.fillStyle = '#00e5ff';
+  ctx.textAlign = 'center';
+  ctx.fillText('SHOOTER', sx0+2, sy0-10);
+  ctx.restore();
+
+  // ── Target icon (diamond)
+  const txp = toX(range), typ = toY(targetH);
+  ctx.save();
+  ctx.fillStyle = '#ff4444';
+  ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.moveTo(txp,    typ-7);
+  ctx.lineTo(txp+5,  typ);
+  ctx.lineTo(txp,    typ+7);
+  ctx.lineTo(txp-5,  typ);
+  ctx.closePath(); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.font = '8px Share Tech Mono,monospace'; ctx.fillStyle = '#ff4444';
+  ctx.textAlign = 'center';
+  ctx.fillText('TARGET', txp, typ-12);
+  ctx.restore();
+
+  // ── Axis labels
+  ctx.save();
+  ctx.font = '8px Share Tech Mono,monospace'; ctx.fillStyle = '#4e7a9a';
+
+  // Y axis (altitude)
+  ctx.textAlign = 'right';
+  for (let h = 0; h <= maxH; h += hStep) {
+    const y = toY(h);
+    if (y < pad.t - 4 || y > pad.t + gH + 4) continue;
+    const si = unit === 'si';
+    const label = si
+      ? (h/1000).toFixed(0)+'km'
+      : (h * FT_PER_M / 1000).toFixed(0)+'kft';
+    ctx.fillText(label, pad.l - 5, y + 3);
   }
 
-  // legend
-  let lx = pad.l, ly = 14;
-  series.forEach(s => {
-    ctx.fillStyle = s.color;
-    ctx.fillRect(lx, ly-8, 14, 3);
-    ctx.fillStyle = 'rgba(236,255,242,.92)';
-    ctx.fillText(s.label, lx + 20, ly);
-    lx += 145;
+  // X axis (range)
+  ctx.textAlign = 'center';
+  for (let rx = 0; rx <= range; rx += rStep) {
+    const x = toX(rx);
+    ctx.fillText((rx/1000).toFixed(0)+'km', x, pad.t + gH + 16);
+  }
+
+  // Axis titles
+  ctx.fillStyle = '#2a5070'; ctx.font = '7px Share Tech Mono,monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('RANGE', pad.l + gW/2, pad.t + gH + 30);
+  ctx.save();
+  ctx.translate(12, pad.t + gH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('ALTITUDE', 0, 0);
+  ctx.restore();
+
+  // Seeker zone label
+  const seekLabelX = sx + (tx_end - sx) / 2;
+  ctx.fillStyle = 'rgba(57,255,110,0.5)'; ctx.font = '7px Share Tech Mono,monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SEEKER ACTIVE', seekLabelX, pad.t + 12);
+
+  ctx.restore();
+
+  // ── Border frame
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,229,255,0.12)'; ctx.lineWidth = 1;
+  ctx.strokeRect(pad.l, pad.t, gW, gH);
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+//  VARIANT SELECT
+// ══════════════════════════════════════════════════════════
+function selVariant(key, btn) {
+  currentVariant = key;
+  document.querySelectorAll('#variant-grid .rbtn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ══════════════════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════════════════
+function tick() {
+  document.getElementById('clk').textContent = new Date().toUTCString().slice(17,25);
+}
+setInterval(tick, 1000); tick();
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  initSliders();
+  // Wire each field input → sync slider
+  // (already done in initSliders via addEventListener)
+  setTimeout(calculate, 400);
+
+  // Redraw trajectory on resize
+  window.addEventListener('resize', () => {
+    if (lastResult) drawTrajectory(lastResult);
   });
-}
-
-function buildTable(data){
-  const picks = 8;
-  const rows = [];
-  for(let i=0;i<picks;i++){
-    const idx = Math.min(data.length - 1, Math.round(i * (data.length - 1) / (picks - 1)));
-    rows.push(data[idx]);
-  }
-  els.table.innerHTML = rows.map((d, i) => `
-    <tr>
-      <td>${i+1}</td>
-      <td>${fmt(d.t,1)} s</td>
-      <td>${fmt(d.y)} m</td>
-      <td>${fmt(msToKmh(d.speed))} km/h</td>
-      <td>${fmt(d.mach,2)}</td>
-      <td>${fmt(d.x/1000,1)} km</td>
-    </tr>
-  `).join('');
-}
-
-function run(){
-  updateHints();
-  const data = simulate();
-  setCards(data);
-  drawRadar(data);
-  buildTable(data);
-
-  drawChart(els.speedChart, [
-    {label:'Vel km/h', color:'rgba(120,223,255,.95)', data:data.map(d=>({x:d.t, y:msToKmh(d.speed)}))},
-    {label:'Mach ×1000', color:'rgba(255,212,92,.95)', data:data.map(d=>({x:d.t, y:d.mach * 1000}))}
-  ], {});
-
-  drawChart(els.altChart, [
-    {label:'Altitude m', color:'rgba(132,255,190,.95)', data:data.map(d=>({x:d.t, y:d.y}))},
-    {label:'Dist km ×1000', color:'rgba(255,156,171,.92)', data:data.map(d=>({x:d.t, y:(d.x/1000)*1000}))}
-  ], {});
-
-  drawChart(els.thrustChart, [
-    {label:'Thrust N', color:'rgba(132,255,190,.95)', data:data.map(d=>({x:d.t, y:d.thrust}))}
-  ], {});
-
-  drawChart(els.massChart, [
-    {label:'Mass kg', color:'rgba(179,136,255,.95)', data:data.map(d=>({x:d.t, y:d.mass}))}
-  ], {});
-}
-
-function animate(){
-  if(window._lastData){
-    drawRadar(window._lastData);
-  }
-  requestAnimationFrame(animate);
-}
-const originalRun = run;
-run = function(){
-  window._lastData = simulate();
-  updateHints();
-  setCards(window._lastData);
-  drawRadar(window._lastData);
-  buildTable(window._lastData);
-
-  drawChart(els.speedChart, [
-    {label:'Vel km/h', color:'rgba(120,223,255,.95)', data:window._lastData.map(d=>({x:d.t, y:msToKmh(d.speed)}))},
-    {label:'Mach ×1000', color:'rgba(255,212,92,.95)', data:window._lastData.map(d=>({x:d.t, y:d.mach * 1000}))}
-  ], {});
-  drawChart(els.altChart, [
-    {label:'Altitude m', color:'rgba(132,255,190,.95)', data:window._lastData.map(d=>({x:d.t, y:d.y}))},
-    {label:'Dist km ×1000', color:'rgba(255,156,171,.92)', data:window._lastData.map(d=>({x:d.t, y:(d.x/1000)*1000}))}
-  ], {});
-  drawChart(els.thrustChart, [
-    {label:'Thrust N', color:'rgba(132,255,190,.95)', data:window._lastData.map(d=>({x:d.t, y:d.thrust}))}
-  ], {});
-  drawChart(els.massChart, [
-    {label:'Mass kg', color:'rgba(179,136,255,.95)', data:window._lastData.map(d=>({x:d.t, y:d.mass}))}
-  ], {});
-}
-
-applyPreset('custom');
-run();
-animate();
+});
 </script>
 </body>
 </html>
